@@ -1,0 +1,6 @@
+max_width = 80
+fn_params_layout = "Tall"
+
+imports_granularity = "Crate"
+group_imports = "StdExternalCrate"
+reorder_imports = true

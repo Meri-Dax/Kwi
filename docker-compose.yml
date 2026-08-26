@@ -1,0 +1,31 @@
+name: kwi
+services:
+  kwi-db:
+    container_name: kwi-db
+    image: postgres:16
+    volumes:
+      - kwi-db-data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U postgres"]
+      interval: 1s
+      timeout: 3s
+      retries: 5
+    environment:
+      POSTGRES_PASSWORD: "${DB_PASSWORD}"
+
+  kwi-api:
+    container_name: kwi-api
+    build: .
+    ports:
+      - 8080:8080
+    depends_on:
+      kwi-db:
+        condition: service_healthy
+    environment:
+      - APP_PORT
+      - APP_HOST
+      - DATABASE_URL="${DATABASE_URL}"
+      - APP_DISABLE_COMMANDS
+
+volumes:
+  kwi-db-data:
