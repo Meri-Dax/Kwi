@@ -3,27 +3,22 @@ use tracing::error;
 
 use crate::{
     common::{http_response_message, repository::RepositoryError},
-    entities::ingredient::{
+    entities::recipe::{
         self,
-        model::{
-            IngredientForm, IngredientSearchForm, IngredientWebForm,
-            IngredientWebView,
-        },
+        model::{RecipeForm, RecipeSearchForm, RecipeWebForm, RecipeWebView},
     },
     helpers::AppState,
 };
 
-#[post("/ingredient")]
+#[post("/")]
 async fn create(
     app_state: web::Data<AppState>,
-    payload_json: web::Json<IngredientWebForm>,
+    payload_json: web::Json<RecipeWebForm>,
 ) -> impl Responder {
-    let payload: IngredientForm = payload_json.into_inner().into();
+    let payload: RecipeForm = payload_json.into_inner().into();
 
-    match ingredient::service::insert(&app_state, payload).await {
-        Ok(ingredient) => {
-            HttpResponse::Ok().json(IngredientWebView::from(ingredient))
-        }
+    match recipe::service::insert(&app_state, payload).await {
+        Ok(recipe) => HttpResponse::Ok().json(RecipeWebView::from(recipe)),
         Err(e) => {
             error!("{}", e);
             http_response_message::BAD_REQUEST.generic_response()
@@ -31,23 +26,21 @@ async fn create(
     }
 }
 
-#[get("/ingredient/{id}")]
+#[get("/{id}")]
 async fn view(
     app_state: web::Data<AppState>,
     search: web::Path<uuid::Uuid>,
 ) -> impl Responder {
-    match ingredient::service::search_one(
+    match recipe::service::search_one(
         &app_state,
-        IngredientSearchForm {
+        RecipeSearchForm {
             id: Some(search.into_inner()),
             slug: None,
         },
     )
     .await
     {
-        Ok(ingredient) => {
-            HttpResponse::Ok().json(IngredientWebView::from(ingredient))
-        }
+        Ok(recipe) => HttpResponse::Ok().json(RecipeWebView::from(recipe)),
         Err(RepositoryError::NotFound) => {
             http_response_message::NOT_FOUND.generic_response()
         }
