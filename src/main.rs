@@ -1,4 +1,8 @@
-use actix_web::{App, HttpServer, web::Data};
+use actix_web::{
+    App, HttpServer,
+    middleware::{NormalizePath, TrailingSlash},
+    web::Data,
+};
 use kwi::{
     CONFIG,
     helpers::{AppState, Config},
@@ -15,9 +19,9 @@ async fn main() -> std::io::Result<()> {
     let loaded_config = Config::from_env().expect("Could not load config");
     CONFIG.set(loaded_config).unwrap();
 
-    let app_state = AppState::try_init().await.unwrap_or_else(|e| {
-        panic!("Could not initialize critical connection: {:?}", e)
-    });
+    let app_state = AppState::try_init()
+        .await
+        .unwrap_or_else(|e| panic!("Could not initialize critical connection: {:?}", e));
 
     //
     // Start server
@@ -29,6 +33,7 @@ async fn main() -> std::io::Result<()> {
     HttpServer::new(move || {
         App::new()
             .wrap(actix_web::middleware::Logger::default())
+            .wrap(NormalizePath::new(TrailingSlash::Trim))
             .app_data(Data::new(app_state.clone()))
             .configure(route::config)
     })

@@ -10,15 +10,16 @@ use crate::{
     helpers::AppState,
 };
 
-#[post("/")]
-async fn create(
-    app_state: web::Data<AppState>,
-    payload_json: web::Json<RecipeWebForm>,
-) -> impl Responder {
+#[post("/recipe")]
+async fn create(app_state: web::Data<AppState>, payload_json: web::Json<RecipeWebForm>) -> impl Responder {
     let payload: RecipeForm = payload_json.into_inner().into();
 
     match recipe::service::insert(&app_state, payload).await {
         Ok(recipe) => HttpResponse::Ok().json(RecipeWebView::from(recipe)),
+        Err(RepositoryError::Database(e)) => {
+            error!("{}", e);
+            http_response_message::INTERNAL_SERVER_ERROR.generic_response()
+        }
         Err(e) => {
             error!("{}", e);
             http_response_message::BAD_REQUEST.generic_response()
@@ -26,11 +27,8 @@ async fn create(
     }
 }
 
-#[get("/{id}")]
-async fn view(
-    app_state: web::Data<AppState>,
-    search: web::Path<uuid::Uuid>,
-) -> impl Responder {
+#[get("/recipe/{id}")]
+async fn view(app_state: web::Data<AppState>, search: web::Path<uuid::Uuid>) -> impl Responder {
     match recipe::service::search_one(
         &app_state,
         RecipeSearchForm {
@@ -41,9 +39,11 @@ async fn view(
     .await
     {
         Ok(recipe) => HttpResponse::Ok().json(RecipeWebView::from(recipe)),
-        Err(RepositoryError::NotFound) => {
-            http_response_message::NOT_FOUND.generic_response()
+        Err(RepositoryError::Database(e)) => {
+            error!("{}", e);
+            http_response_message::INTERNAL_SERVER_ERROR.generic_response()
         }
+        Err(RepositoryError::NotFound) => http_response_message::NOT_FOUND.generic_response(),
         Err(e) => {
             error!("{}", e);
             http_response_message::INTERNAL_SERVER_ERROR.generic_response()
@@ -52,5 +52,5 @@ async fn view(
 }
 
 pub fn config(cfg: &mut web::ServiceConfig) {
-    cfg.service(web::scope("/recipe").service(create).service(view));
+    cfg.service(create).service(view);
 }

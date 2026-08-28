@@ -1,7 +1,9 @@
-use diesel::{Selectable, deserialize::Queryable, prelude::Insertable};
+use diesel::{Selectable, associations::Identifiable, deserialize::Queryable, prelude::Insertable};
 use serde::{Deserialize, Serialize};
 
-#[derive(Queryable, Selectable, Serialize, Deserialize)]
+use crate::entities::dietary_restriction::model::{DietaryRestriction, DietaryRestrictionWebView};
+
+#[derive(Identifiable, Queryable, Selectable, Serialize, Deserialize, Clone)]
 #[diesel(table_name = crate::schema::ingredient)]
 #[diesel(check_for_backend(diesel::pg::Pg))]
 pub struct Ingredient {
@@ -22,23 +24,40 @@ pub struct IngredientForm {
 #[derive(serde::Deserialize)]
 pub struct IngredientWebForm {
     pub slug: String,
+    pub dietary_restrictions: Option<Vec<uuid::Uuid>>,
 }
 
-impl From<IngredientWebForm> for IngredientForm {
-    fn from(IngredientWebForm { slug }: IngredientWebForm) -> Self {
-        Self { slug }
+impl From<IngredientWebForm> for (IngredientForm, Vec<uuid::Uuid>) {
+    fn from(
+        IngredientWebForm {
+            slug,
+            dietary_restrictions,
+        }: IngredientWebForm,
+    ) -> (IngredientForm, Vec<uuid::Uuid>) {
+        (
+            IngredientForm { slug },
+            match dietary_restrictions {
+                Some(diet) => diet,
+                None => Vec::new(),
+            },
+        )
     }
 }
 
-#[derive(serde::Serialize)]
+#[derive(Serialize)]
 pub struct IngredientWebView {
     pub id: uuid::Uuid,
     pub slug: String,
+    pub dietary_restrictions: Vec<DietaryRestrictionWebView>,
 }
 
-impl From<Ingredient> for IngredientWebView {
-    fn from(Ingredient { slug, id }: Ingredient) -> Self {
-        Self { slug, id }
+impl From<(Ingredient, Vec<DietaryRestriction>)> for IngredientWebView {
+    fn from((Ingredient { slug, id }, diet): (Ingredient, Vec<DietaryRestriction>)) -> Self {
+        Self {
+            slug,
+            id,
+            dietary_restrictions: diet.into_iter().map(DietaryRestrictionWebView::from).collect(),
+        }
     }
 }
 #[derive(Deserialize, Queryable)]
@@ -47,4 +66,10 @@ impl From<Ingredient> for IngredientWebView {
 pub struct IngredientSearchForm {
     pub id: Option<uuid::Uuid>,
     pub slug: Option<String>,
+}
+
+impl IngredientSearchForm {
+    pub fn empty() -> Self {
+        Self { id: None, slug: None }
+    }
 }
