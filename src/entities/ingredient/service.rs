@@ -1,8 +1,8 @@
 use crate::{
-    common::repository::Error as RepositoryError,
+    common::repository::RepositoryError,
     entities::ingredient::{
         self,
-        model::{Ingredient, IngredientForm},
+        model::{Ingredient, IngredientForm, IngredientSearchForm},
     },
     helpers::AppState,
 };
@@ -11,7 +11,12 @@ pub async fn insert(
     app_state: &AppState,
     form: IngredientForm,
 ) -> Result<Ingredient, RepositoryError> {
-    let result = ingredient::repository::insert(app_state, form).await?;
+    ingredient::repository::insert(app_state, form).await
+}
 
-    Ok(result)
+pub async fn search_one(
+    app_state: &AppState,
+    search_form: IngredientSearchForm,
+) -> Result<Ingredient, RepositoryError> {
+    ingredient::repository::search_one(&app_state, search_form).await
 }

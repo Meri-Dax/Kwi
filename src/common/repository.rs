@@ -1,11 +1,22 @@
 use diesel_async::pooled_connection;
 
 #[derive(Debug, thiserror::Error)]
-pub enum Error {
+pub enum RepositoryError {
+    #[error("Not found")]
+    NotFound,
     #[error("{0}")]
-    Query(#[from] diesel::result::Error),
+    Query(diesel::result::Error),
     #[error("{0}")]
     Database(#[from] pooled_connection::bb8::RunError),
+}
+
+impl From<diesel::result::Error> for RepositoryError {
+    fn from(err: diesel::result::Error) -> Self {
+        match err {
+            diesel::result::Error::NotFound => RepositoryError::NotFound,
+            err => RepositoryError::Query(err),
+        }
+    }
 }
 
 #[macro_export]
@@ -14,7 +25,7 @@ macro_rules! impl_insert {
         pub async fn insert(
             AppState { database }: &AppState,
             payload: $form,
-        ) -> Result<$model, $crate::common::repository::Error> {
+        ) -> Result<$model, $crate::common::repository::RepositoryError> {
             let mut conn = database.get().await?;
 
             let result = diesel::insert_into($table)
