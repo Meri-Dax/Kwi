@@ -1,14 +1,14 @@
 use diesel::{ExpressionMethods, QueryDsl, SelectableHelper};
 use diesel_async::RunQueryDsl;
 
-use crate::common::repository::RepositoryError;
-use crate::entities::ingredient::model::IngredientSearchForm;
-use crate::helpers::AppState;
-use crate::schema::ingredient::{id, slug};
 use crate::{
-    entities::ingredient::model::{Ingredient, IngredientForm},
+    common::repository::RepositoryError,
+    entities::ingredient::model::{
+        Ingredient, IngredientForm, IngredientSearchForm,
+    },
+    helpers::AppState,
     impl_insert,
-    schema::ingredient::dsl as ingredient_dsl,
+    schema::ingredient::{dsl as ingredient_dsl, id, slug},
 };
 
 impl_insert!(Ingredient, IngredientForm, crate::schema::ingredient::table);
