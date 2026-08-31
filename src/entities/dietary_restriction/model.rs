@@ -23,31 +23,6 @@ pub struct DietaryRestrictionForm {
     pub slug: String,
 }
 
-///
-/// Web service structs
-///
-#[derive(serde::Deserialize)]
-pub struct DietaryRestrictionWebForm {
-    pub slug: String,
-}
-
-impl From<DietaryRestrictionWebForm> for DietaryRestrictionForm {
-    fn from(DietaryRestrictionWebForm { slug }: DietaryRestrictionWebForm) -> Self {
-        Self { slug }
-    }
-}
-
-#[derive(Serialize)]
-pub struct DietaryRestrictionWebView {
-    pub id: uuid::Uuid,
-    pub slug: String,
-}
-
-impl From<DietaryRestriction> for DietaryRestrictionWebView {
-    fn from(DietaryRestriction { slug, id }: DietaryRestriction) -> Self {
-        Self { slug, id }
-    }
-}
 #[derive(Deserialize, Queryable)]
 #[diesel(table_name = dietary_restriction)]
 #[diesel(check_for_backend(diesel::pg::Pg))]
@@ -77,4 +52,30 @@ impl DietaryRestrictionSearchForm {
 pub struct IngredientDietaryRestriction {
     pub ingredient_id: uuid::Uuid,
     pub dietary_restriction_id: uuid::Uuid,
+}
+
+///
+/// Web service structs
+///
+#[derive(serde::Deserialize)]
+pub struct DietaryRestrictionWebForm {
+    pub slug: String,
+}
+
+impl From<DietaryRestrictionWebForm> for DietaryRestrictionForm {
+    fn from(DietaryRestrictionWebForm { slug }: DietaryRestrictionWebForm) -> Self {
+        Self { slug }
+    }
+}
+
+#[derive(Serialize)]
+pub struct DietaryRestrictionWebView {
+    pub id: uuid::Uuid,
+    pub slug: String,
+}
+
+impl From<DietaryRestriction> for DietaryRestrictionWebView {
+    fn from(DietaryRestriction { slug, id }: DietaryRestriction) -> Self {
+        Self { slug, id }
+    }
 }

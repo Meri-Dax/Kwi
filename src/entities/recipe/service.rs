@@ -1,8 +1,11 @@
 use crate::{
     common::repository::RepositoryError,
-    entities::recipe::{
-        self,
-        model::{Recipe, RecipeForm, RecipeSearchForm},
+    entities::{
+        ingredient::model::RecipeIngredientWebForm,
+        recipe::{
+            self,
+            model::{DetailedRecipe, Recipe, RecipeForm, RecipeSearchForm},
+        },
     },
     helpers::AppState,
 };
@@ -11,6 +14,17 @@ pub async fn insert(app_state: &AppState, form: RecipeForm) -> Result<Recipe, Re
     recipe::repository::insert(app_state, form).await
 }
 
-pub async fn search_one(app_state: &AppState, search_form: RecipeSearchForm) -> Result<Recipe, RepositoryError> {
+pub async fn insert_with_ingredients(
+    app_state: &AppState,
+    recipe_form: RecipeForm,
+    ingredients: Vec<RecipeIngredientWebForm>,
+) -> Result<DetailedRecipe, RepositoryError> {
+    recipe::repository::insert_with_ingredient(app_state, recipe_form, ingredients).await
+}
+
+pub async fn search_one(
+    app_state: &AppState,
+    search_form: RecipeSearchForm,
+) -> Result<DetailedRecipe, RepositoryError> {
     recipe::repository::search_one(&app_state, search_form).await
 }

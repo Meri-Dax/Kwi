@@ -1,7 +1,12 @@
 use diesel::{Selectable, deserialize::Queryable, prelude::Insertable};
 use serde::{Deserialize, Serialize};
 
-#[derive(Queryable, Selectable, Serialize, Deserialize)]
+use crate::entities::{
+    dietary_restriction::model::DietaryRestriction,
+    ingredient::model::{Ingredient, RecipeIngredient, RecipeIngredientWebForm, RecipeIngredientWebView},
+};
+
+#[derive(Queryable, Selectable, Serialize, Deserialize, Clone)]
 #[diesel(table_name = crate::schema::recipe)]
 #[diesel(check_for_backend(diesel::pg::Pg))]
 pub struct Recipe {
@@ -16,35 +21,65 @@ pub struct RecipeForm {
     pub slug: String,
 }
 
+pub struct DetailedRecipe {
+    pub recipe: Recipe,
+    pub ingredients: Vec<(RecipeIngredient, Ingredient)>,
+    pub dietary_restrictions: Vec<DietaryRestriction>,
+}
+
 ///
 /// Web service structs
 ///
 #[derive(serde::Deserialize)]
 pub struct RecipeWebForm {
     pub slug: String,
+    pub ingredients: Vec<RecipeIngredientWebForm>,
 }
 
-impl From<RecipeWebForm> for RecipeForm {
-    fn from(RecipeWebForm { slug }: RecipeWebForm) -> Self {
-        Self { slug }
+impl From<RecipeWebForm> for (RecipeForm, Vec<RecipeIngredientWebForm>) {
+    fn from(RecipeWebForm { slug, ingredients }: RecipeWebForm) -> Self {
+        (RecipeForm { slug }, ingredients)
     }
 }
 
-#[derive(serde::Serialize)]
+#[derive(Serialize)]
 pub struct RecipeWebView {
     pub id: uuid::Uuid,
     pub slug: String,
+    pub ingredients: Vec<RecipeIngredientWebView>,
+    pub dietary_restrictions: Vec<DietaryRestriction>,
 }
 
-impl From<Recipe> for RecipeWebView {
-    fn from(Recipe { slug, id }: Recipe) -> Self {
-        Self { slug, id }
+impl From<DetailedRecipe> for RecipeWebView {
+    fn from(
+        DetailedRecipe {
+            recipe: Recipe { slug, id },
+            ingredients,
+            dietary_restrictions,
+        }: DetailedRecipe,
+    ) -> Self {
+        Self {
+            slug,
+            id,
+            ingredients: ingredients.into_iter().map(RecipeIngredientWebView::from).collect(),
+            dietary_restrictions,
+        }
     }
 }
+
 #[derive(Deserialize, Queryable)]
 #[diesel(table_name = recipe)]
 #[diesel(check_for_backend(diesel::pg::Pg))]
 pub struct RecipeSearchForm {
     pub id: Option<uuid::Uuid>,
     pub slug: Option<String>,
+}
+
+impl RecipeSearchForm {
+    pub fn by_id(recipe_id: &uuid::Uuid) -> Self {
+        Self {
+            slug: None,
+            id: Some(*recipe_id),
+        }
+    }
 }

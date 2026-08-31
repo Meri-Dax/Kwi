@@ -75,7 +75,9 @@ async fn list(app_state: web::Data<AppState>) -> impl Responder {
 
     let diet_restrictions: Vec<IngredientWebView> = match diet_restrictions {
         Ok(list) => list.into_iter().map(Into::into).collect(),
-        Err(RepositoryError::NotFound) => return HttpResponse::Ok().json(Vec::<IngredientWebView>::new()),
+        Err(RepositoryError::NotFound) => {
+            return HttpResponse::Ok().json(Vec::<IngredientWebView>::new());
+        }
         Err(RepositoryError::Database(e)) => {
             error!("{}", e);
             return http_response_message::INTERNAL_SERVER_ERROR.generic_response();

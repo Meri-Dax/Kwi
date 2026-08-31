@@ -3,18 +3,21 @@ use tracing::error;
 
 use crate::{
     common::{http_response_message, repository::RepositoryError},
-    entities::recipe::{
-        self,
-        model::{RecipeForm, RecipeSearchForm, RecipeWebForm, RecipeWebView},
+    entities::{
+        ingredient::model::RecipeIngredientWebForm,
+        recipe::{
+            self,
+            model::{RecipeForm, RecipeSearchForm, RecipeWebForm, RecipeWebView},
+        },
     },
     helpers::AppState,
 };
 
 #[post("/recipe")]
 async fn create(app_state: web::Data<AppState>, payload_json: web::Json<RecipeWebForm>) -> impl Responder {
-    let payload: RecipeForm = payload_json.into_inner().into();
+    let (recipe, ingredients): (RecipeForm, Vec<RecipeIngredientWebForm>) = payload_json.into_inner().into();
 
-    match recipe::service::insert(&app_state, payload).await {
+    match recipe::service::insert_with_ingredients(&app_state, recipe, ingredients).await {
         Ok(recipe) => HttpResponse::Ok().json(RecipeWebView::from(recipe)),
         Err(RepositoryError::Database(e)) => {
             error!("{}", e);
