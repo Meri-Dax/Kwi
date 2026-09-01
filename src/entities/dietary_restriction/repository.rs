@@ -5,7 +5,8 @@ use crate::{
     common::repository::RepositoryError,
     entities::{
         dietary_restriction::model::{
-            DietaryRestriction, DietaryRestrictionForm, DietaryRestrictionSearchForm, IngredientDietaryRestriction,
+            DietaryRestriction, DietaryRestrictionForm, DietaryRestrictionSearchForm, DietaryRestrictionUpdateForm,
+            IngredientDietaryRestriction,
         },
         ingredient::model::Ingredient,
     },
@@ -33,6 +34,23 @@ pub async fn insert_multiple(
         .await?;
 
     Ok(())
+}
+
+pub async fn update(
+    app_state: &AppState,
+    id: &uuid::Uuid,
+    form: &DietaryRestrictionUpdateForm,
+) -> Result<DietaryRestriction, RepositoryError> {
+    let mut conn = app_state.database.get().await?;
+
+    let result =
+        diesel::update(dietary_restriction::dsl::dietary_restriction.filter(dietary_restriction::dsl::id.eq(id)))
+            .set(form)
+            .returning(DietaryRestriction::as_returning())
+            .get_result(&mut conn)
+            .await?;
+
+    Ok(result)
 }
 
 pub async fn search_one(

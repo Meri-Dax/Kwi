@@ -1,4 +1,4 @@
-use actix_web::{HttpResponse, Responder, get, post, web};
+use actix_web::{HttpResponse, Responder, get, patch, post, web};
 use tracing::error;
 
 use crate::{
@@ -6,7 +6,8 @@ use crate::{
     entities::dietary_restriction::{
         self,
         model::{
-            DietaryRestrictionForm, DietaryRestrictionSearchForm, DietaryRestrictionWebForm, DietaryRestrictionWebView,
+            DietaryRestrictionForm, DietaryRestrictionSearchForm, DietaryRestrictionUpdateForm,
+            DietaryRestrictionUpdateWebForm, DietaryRestrictionWebForm, DietaryRestrictionWebView,
         },
     },
     helpers::AppState,
@@ -26,6 +27,28 @@ async fn view(app_state: web::Data<AppState>, search: web::Path<uuid::Uuid>) -> 
         Err(e) => {
             error!("{}", e);
             http_response_message::INTERNAL_SERVER_ERROR.generic_response()
+        }
+    }
+}
+
+#[patch("/diet/{id}")]
+async fn update(
+    app_state: web::Data<AppState>,
+    update_id: web::Path<uuid::Uuid>,
+    payload_json: web::Json<DietaryRestrictionUpdateWebForm>,
+) -> impl Responder {
+    let payload: DietaryRestrictionUpdateForm = payload_json.into_inner().into();
+
+    match dietary_restriction::service::update(&app_state, &update_id, &payload).await {
+        Ok(dietary_restriction) => HttpResponse::Ok().json(DietaryRestrictionWebView::from(dietary_restriction)),
+        Err(RepositoryError::Database(e)) => {
+            error!("{}", e);
+            http_response_message::INTERNAL_SERVER_ERROR.generic_response()
+        }
+        Err(RepositoryError::NotFound) => http_response_message::NOT_FOUND.generic_response(),
+        Err(e) => {
+            error!("{}", e);
+            http_response_message::BAD_REQUEST.generic_response()
         }
     }
 }
@@ -68,5 +91,5 @@ async fn list(app_state: web::Data<AppState>) -> impl Responder {
 }
 
 pub fn config(cfg: &mut web::ServiceConfig) {
-    cfg.service(create).service(list).service(view);
+    cfg.service(create).service(list).service(view).service(update);
 }

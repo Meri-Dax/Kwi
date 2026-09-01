@@ -3,6 +3,7 @@ use diesel::{
     associations::{Associations, Identifiable},
     deserialize::Queryable,
     prelude::Insertable,
+    query_builder::AsChangeset,
 };
 use serde::{Deserialize, Serialize};
 
@@ -21,6 +22,13 @@ pub struct DietaryRestriction {
 #[diesel(check_for_backend(diesel::pg::Pg))]
 pub struct DietaryRestrictionForm {
     pub slug: String,
+}
+
+#[derive(AsChangeset)]
+#[diesel(table_name = crate::schema::dietary_restriction)]
+#[diesel(check_for_backend(diesel::pg::Pg))]
+pub struct DietaryRestrictionUpdateForm {
+    pub slug: Option<String>,
 }
 
 #[derive(Deserialize, Queryable)]
@@ -64,6 +72,17 @@ pub struct DietaryRestrictionWebForm {
 
 impl From<DietaryRestrictionWebForm> for DietaryRestrictionForm {
     fn from(DietaryRestrictionWebForm { slug }: DietaryRestrictionWebForm) -> Self {
+        Self { slug }
+    }
+}
+
+#[derive(serde::Deserialize)]
+pub struct DietaryRestrictionUpdateWebForm {
+    pub slug: Option<String>,
+}
+
+impl From<DietaryRestrictionUpdateWebForm> for DietaryRestrictionUpdateForm {
+    fn from(DietaryRestrictionUpdateWebForm { slug }: DietaryRestrictionUpdateWebForm) -> Self {
         Self { slug }
     }
 }

@@ -3,7 +3,9 @@ use crate::{
     entities::{
         dietary_restriction::{
             self,
-            model::{DietaryRestriction, DietaryRestrictionForm, DietaryRestrictionSearchForm},
+            model::{
+                DietaryRestriction, DietaryRestrictionForm, DietaryRestrictionSearchForm, DietaryRestrictionUpdateForm,
+            },
         },
         ingredient::model::Ingredient,
     },
@@ -12,6 +14,14 @@ use crate::{
 
 pub async fn insert(app_state: &AppState, form: DietaryRestrictionForm) -> Result<DietaryRestriction, RepositoryError> {
     dietary_restriction::repository::insert(app_state, form).await
+}
+
+pub async fn update(
+    app_state: &AppState,
+    id: &uuid::Uuid,
+    form: &DietaryRestrictionUpdateForm,
+) -> Result<DietaryRestriction, RepositoryError> {
+    dietary_restriction::repository::update(app_state, id, form).await
 }
 
 pub async fn search_one(
