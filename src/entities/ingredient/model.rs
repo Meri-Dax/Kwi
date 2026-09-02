@@ -1,4 +1,7 @@
-use diesel::{Associations, Selectable, associations::Identifiable, deserialize::Queryable, prelude::Insertable};
+use diesel::{
+    Associations, Selectable, associations::Identifiable, deserialize::Queryable, prelude::Insertable,
+    query_builder::AsChangeset,
+};
 use diesel_derive_enum::DbEnum;
 use serde::{Deserialize, Serialize};
 
@@ -20,6 +23,19 @@ pub struct Ingredient {
 #[diesel(check_for_backend(diesel::pg::Pg))]
 pub struct IngredientForm {
     pub slug: String,
+}
+
+#[derive(AsChangeset, Default, PartialEq)]
+#[diesel(table_name = crate::schema::ingredient)]
+#[diesel(check_for_backend(diesel::pg::Pg))]
+pub struct IngredientUpdateForm {
+    pub slug: Option<String>,
+}
+
+impl IngredientUpdateForm {
+    pub fn is_empty(&self) -> bool {
+        *self == IngredientUpdateForm::default()
+    }
 }
 
 #[derive(DbEnum, Debug, PartialEq, Serialize, Deserialize, Clone, Copy)]
@@ -78,6 +94,23 @@ impl From<IngredientWebForm> for (IngredientForm, Vec<uuid::Uuid>) {
                 None => Vec::new(),
             },
         )
+    }
+}
+
+#[derive(serde::Deserialize)]
+pub struct IngredientUpdateWebForm {
+    pub slug: Option<String>,
+    pub dietary_restrictions: Option<Vec<uuid::Uuid>>,
+}
+
+impl From<IngredientUpdateWebForm> for (IngredientUpdateForm, Option<Vec<uuid::Uuid>>) {
+    fn from(
+        IngredientUpdateWebForm {
+            slug,
+            dietary_restrictions,
+        }: IngredientUpdateWebForm,
+    ) -> (IngredientUpdateForm, Option<Vec<uuid::Uuid>>) {
+        (IngredientUpdateForm { slug }, dietary_restrictions)
     }
 }
 

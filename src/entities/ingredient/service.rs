@@ -4,7 +4,7 @@ use crate::{
         dietary_restriction::{self, model::DietaryRestriction},
         ingredient::{
             self,
-            model::{Ingredient, IngredientForm, IngredientSearchForm},
+            model::{Ingredient, IngredientForm, IngredientSearchForm, IngredientUpdateForm},
         },
     },
     helpers::AppState,
@@ -33,6 +33,15 @@ pub async fn search_one(
         Err(RepositoryError::NotFound) => Ok((ingredient, Vec::new())),
         Err(e) => Err(e),
     }
+}
+
+pub async fn update(
+    app_state: &AppState,
+    update_id: &uuid::Uuid,
+    update_form: &IngredientUpdateForm,
+    update_diets: &Option<Vec<uuid::Uuid>>,
+) -> Result<(Ingredient, Vec<DietaryRestriction>), RepositoryError> {
+    ingredient::repository::update_with_diet(app_state, update_id, update_form, update_diets).await
 }
 
 pub async fn insert_with_diet(

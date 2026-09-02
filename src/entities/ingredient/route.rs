@@ -1,4 +1,4 @@
-use actix_web::{HttpResponse, Responder, get, post, web};
+use actix_web::{HttpResponse, Responder, get, patch, post, web};
 use tracing::error;
 
 use crate::{
@@ -7,7 +7,10 @@ use crate::{
         dietary_restriction,
         ingredient::{
             self,
-            model::{IngredientForm, IngredientSearchForm, IngredientWebForm, IngredientWebView},
+            model::{
+                IngredientForm, IngredientSearchForm, IngredientUpdateForm, IngredientUpdateWebForm, IngredientWebForm,
+                IngredientWebView,
+            },
         },
     },
     helpers::AppState,
@@ -27,6 +30,27 @@ async fn create(app_state: web::Data<AppState>, payload_json: web::Json<Ingredie
         Err(e) => {
             error!("{}", e);
             http_response_message::BAD_REQUEST.generic_response()
+        }
+    }
+}
+
+#[patch("/ingredient/{id}")]
+async fn update(
+    app_state: web::Data<AppState>,
+    update_id: web::Path<uuid::Uuid>,
+    update_form: web::Json<IngredientUpdateWebForm>,
+) -> impl Responder {
+    let (update_form, update_diets): (IngredientUpdateForm, Option<Vec<uuid::Uuid>>) = update_form.into_inner().into();
+    match ingredient::service::update(&app_state, &update_id, &update_form, &update_diets).await {
+        Ok(result) => HttpResponse::Ok().json(IngredientWebView::from(result)),
+        Err(RepositoryError::NotFound) => http_response_message::NOT_FOUND.generic_response(),
+        Err(RepositoryError::Database(e)) => {
+            error!("{}", e);
+            http_response_message::INTERNAL_SERVER_ERROR.generic_response()
+        }
+        Err(e) => {
+            error!("{}", e);
+            http_response_message::INTERNAL_SERVER_ERROR.generic_response()
         }
     }
 }
@@ -89,5 +113,5 @@ async fn list(app_state: web::Data<AppState>) -> impl Responder {
 }
 
 pub fn config(cfg: &mut web::ServiceConfig) {
-    cfg.service(create).service(view).service(list);
+    cfg.service(create).service(view).service(list).service(update);
 }
