@@ -4,7 +4,7 @@ use crate::{
         ingredient::model::RecipeIngredientWebForm,
         recipe::{
             self,
-            model::{DetailedRecipe, Recipe, RecipeForm, RecipeSearchForm},
+            model::{DetailedRecipe, Recipe, RecipeForm, RecipeSearchForm, RecipeUpdateForm},
         },
     },
     helpers::AppState,
@@ -20,6 +20,15 @@ pub async fn insert_with_ingredients(
     ingredients: Vec<RecipeIngredientWebForm>,
 ) -> Result<DetailedRecipe, RepositoryError> {
     recipe::repository::insert_with_ingredient(app_state, recipe_form, ingredients).await
+}
+
+pub async fn update_with_ingredients(
+    app_state: &AppState,
+    id: &uuid::Uuid,
+    recipe_form: &RecipeUpdateForm,
+    ingredients: &Option<Vec<RecipeIngredientWebForm>>,
+) -> Result<DetailedRecipe, RepositoryError> {
+    recipe::repository::update_with_ingredients(app_state, id, recipe_form, ingredients).await
 }
 
 pub async fn search_one(

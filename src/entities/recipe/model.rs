@@ -1,4 +1,4 @@
-use diesel::{Selectable, deserialize::Queryable, prelude::Insertable};
+use diesel::{Selectable, deserialize::Queryable, prelude::Insertable, query_builder::AsChangeset};
 use serde::{Deserialize, Serialize};
 
 use crate::entities::{
@@ -21,6 +21,19 @@ pub struct RecipeForm {
     pub slug: String,
 }
 
+#[derive(AsChangeset, Default, PartialEq)]
+#[diesel(table_name = crate::schema::recipe)]
+#[diesel(check_for_backend(diesel::pg::Pg))]
+pub struct RecipeUpdateForm {
+    pub slug: Option<String>,
+}
+
+impl RecipeUpdateForm {
+    pub fn is_empty(&self) -> bool {
+        *self == RecipeUpdateForm::default()
+    }
+}
+
 pub struct DetailedRecipe {
     pub recipe: Recipe,
     pub ingredients: Vec<(RecipeIngredient, Ingredient)>,
@@ -39,6 +52,18 @@ pub struct RecipeWebForm {
 impl From<RecipeWebForm> for (RecipeForm, Vec<RecipeIngredientWebForm>) {
     fn from(RecipeWebForm { slug, ingredients }: RecipeWebForm) -> Self {
         (RecipeForm { slug }, ingredients)
+    }
+}
+
+#[derive(serde::Deserialize)]
+pub struct RecipeUpdateWebForm {
+    pub slug: Option<String>,
+    pub ingredients: Option<Vec<RecipeIngredientWebForm>>,
+}
+
+impl From<RecipeUpdateWebForm> for (RecipeUpdateForm, Option<Vec<RecipeIngredientWebForm>>) {
+    fn from(RecipeUpdateWebForm { slug, ingredients }: RecipeUpdateWebForm) -> Self {
+        (RecipeUpdateForm { slug }, ingredients)
     }
 }
 

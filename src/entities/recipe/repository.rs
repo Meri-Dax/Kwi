@@ -6,7 +6,7 @@ use crate::{
     entities::{
         dietary_restriction::model::DietaryRestriction,
         ingredient::model::{Ingredient, RecipeIngredient, RecipeIngredientForm, RecipeIngredientWebForm},
-        recipe::model::{DetailedRecipe, Recipe, RecipeForm, RecipeSearchForm},
+        recipe::model::{DetailedRecipe, Recipe, RecipeForm, RecipeSearchForm, RecipeUpdateForm},
     },
     helpers::AppState,
     impl_insert,
@@ -68,7 +68,7 @@ pub async fn search_one(app_state: &AppState, search: RecipeSearchForm) -> Resul
 pub async fn insert_with_ingredient(
     app_state: &AppState,
     recipe_form: RecipeForm,
-    recipe_ingredient: Vec<RecipeIngredientWebForm>,
+    recipe_ingredients: Vec<RecipeIngredientWebForm>,
 ) -> Result<DetailedRecipe, RepositoryError> {
     let mut conn = app_state.database.get().await?;
     let mut tx = conn.build_transaction().read_write();
@@ -81,21 +81,67 @@ pub async fn insert_with_ingredient(
                 .get_result(ts_conn)
                 .await?;
 
-            let recipe_ingredient_links: Vec<RecipeIngredientForm> = recipe_ingredient
-                .iter()
-                .map(|&recipe_ingredient| RecipeIngredientForm::from((&recipe, &recipe_ingredient)))
-                .collect();
+            if !recipe_ingredients.is_empty() {
+                let recipe_ingredient_links: Vec<RecipeIngredientForm> = recipe_ingredients
+                    .iter()
+                    .map(|&recipe_ingredient| RecipeIngredientForm::from((&recipe, &recipe_ingredient)))
+                    .collect();
 
-            diesel::insert_into(recipe_ingredient::table)
-                .values(&recipe_ingredient_links)
-                .execute(ts_conn)
-                .await?;
+                diesel::insert_into(recipe_ingredient::table)
+                    .values(&recipe_ingredient_links)
+                    .execute(ts_conn)
+                    .await?;
+            }
 
             Ok(recipe)
         })
         .await?;
 
     let result = search_one(app_state, RecipeSearchForm::by_id(&recipe.id)).await?;
+
+    Ok(result)
+}
+
+pub async fn update_with_ingredients(
+    app_state: &AppState,
+    recipe_id: &uuid::Uuid,
+    recipe_form: &RecipeUpdateForm,
+    recipe_ingredients: &Option<Vec<RecipeIngredientWebForm>>,
+) -> Result<DetailedRecipe, RepositoryError> {
+    let mut conn = app_state.database.get().await?;
+    let mut tx = conn.build_transaction().read_write();
+
+    tx.run(async |ts_conn| -> Result<(), RepositoryError> {
+        if !recipe_form.is_empty() {
+            diesel::update(recipe::table.filter(recipe::dsl::id.eq(recipe_id)))
+                .set(recipe_form)
+                .execute(ts_conn)
+                .await?;
+        }
+
+        if let Some(recipe_ingredients) = recipe_ingredients {
+            diesel::delete(recipe_ingredient::table.filter(recipe_ingredient::dsl::recipe_id.eq(recipe_id)))
+                .execute(ts_conn)
+                .await?;
+
+            if !recipe_ingredients.is_empty() {
+                let recipe_ingredient_links: Vec<RecipeIngredientForm> = recipe_ingredients
+                    .iter()
+                    .map(|&recipe_ingredient| RecipeIngredientForm::from((recipe_id, &recipe_ingredient)))
+                    .collect();
+
+                diesel::insert_into(recipe_ingredient::table)
+                    .values(&recipe_ingredient_links)
+                    .execute(ts_conn)
+                    .await?;
+            }
+        }
+
+        Ok(())
+    })
+    .await?;
+
+    let result = search_one(app_state, RecipeSearchForm::by_id(recipe_id)).await?;
 
     Ok(result)
 }

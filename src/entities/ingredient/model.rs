@@ -195,3 +195,23 @@ impl From<(&Recipe, &RecipeIngredientWebForm)> for RecipeIngredientForm {
         }
     }
 }
+
+impl From<(&uuid::Uuid, &RecipeIngredientWebForm)> for RecipeIngredientForm {
+    fn from(
+        (
+            recipe_id,
+            &RecipeIngredientWebForm {
+                id: ingredient_id,
+                qty,
+                unit,
+            },
+        ): (&uuid::Uuid, &RecipeIngredientWebForm),
+    ) -> Self {
+        Self {
+            recipe_id: *recipe_id,
+            ingredient_id,
+            qty,
+            unit,
+        }
+    }
+}
