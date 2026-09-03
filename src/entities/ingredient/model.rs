@@ -179,7 +179,12 @@ pub struct RecipeIngredientWebForm {
 impl From<(&Recipe, &RecipeIngredientWebForm)> for RecipeIngredientForm {
     fn from(
         (
-            &Recipe { id: recipe_id, slug: _ },
+            &Recipe {
+                id: recipe_id,
+                slug: _,
+                date_created: _,
+                date_updated: _,
+            },
             &RecipeIngredientWebForm {
                 id: ingredient_id,
                 qty,

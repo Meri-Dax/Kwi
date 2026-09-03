@@ -1,3 +1,4 @@
+use chrono::Utc;
 use diesel::{ExpressionMethods, JoinOnDsl, QueryDsl, SelectableHelper};
 use diesel_async::RunQueryDsl;
 
@@ -114,7 +115,7 @@ pub async fn update_with_ingredients(
     tx.run(async |ts_conn| -> Result<(), RepositoryError> {
         if !recipe_form.is_empty() {
             diesel::update(recipe::table.filter(recipe::dsl::id.eq(recipe_id)))
-                .set(recipe_form)
+                .set((recipe_form, recipe::dsl::date_updated.eq(Utc::now().naive_utc())))
                 .execute(ts_conn)
                 .await?;
         }

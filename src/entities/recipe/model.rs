@@ -1,3 +1,4 @@
+use chrono::{DateTime, Utc};
 use diesel::{Selectable, deserialize::Queryable, prelude::Insertable, query_builder::AsChangeset};
 use serde::{Deserialize, Serialize};
 
@@ -12,6 +13,8 @@ use crate::entities::{
 pub struct Recipe {
     pub id: uuid::Uuid,
     pub slug: String,
+    pub date_created: DateTime<Utc>,
+    pub date_updated: DateTime<Utc>,
 }
 
 #[derive(Insertable)]
@@ -78,7 +81,13 @@ pub struct RecipeWebView {
 impl From<DetailedRecipe> for RecipeWebView {
     fn from(
         DetailedRecipe {
-            recipe: Recipe { slug, id },
+            recipe:
+                Recipe {
+                    slug,
+                    id,
+                    date_created: _,
+                    date_updated: _,
+                },
             ingredients,
             dietary_restrictions,
         }: DetailedRecipe,

@@ -35,6 +35,8 @@ diesel::table! {
         id -> Uuid,
         #[max_length = 255]
         slug -> Varchar,
+        date_created -> Timestamptz,
+        date_updated -> Timestamptz,
     }
 }
 
