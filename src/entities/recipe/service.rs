@@ -1,10 +1,10 @@
 use crate::{
-    common::repository::RepositoryError,
+    common::{paginate::List, repository::RepositoryError},
     entities::{
         ingredient::model::RecipeIngredientWebForm,
         recipe::{
             self,
-            model::{DetailedRecipe, Recipe, RecipeForm, RecipeSearchForm, RecipeUpdateForm},
+            model::{DetailedRecipe, Recipe, RecipeForm, RecipeQuery, RecipeSearchForm, RecipeUpdateForm},
         },
     },
     helpers::AppState,
@@ -36,4 +36,16 @@ pub async fn search_one(
     search_form: RecipeSearchForm,
 ) -> Result<DetailedRecipe, RepositoryError> {
     recipe::repository::search_one(&app_state, search_form).await
+}
+
+pub async fn list(app_state: &AppState, query: &RecipeQuery) -> Result<List<DetailedRecipe>, RepositoryError> {
+    let List {
+        list: ids_list,
+        max_page,
+        page,
+    } = recipe::repository::list(app_state, query).await?;
+
+    let list = recipe::repository::get_from_list(app_state, &ids_list).await?;
+
+    Ok(List { list, max_page, page })
 }

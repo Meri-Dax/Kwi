@@ -2,12 +2,15 @@ use chrono::{DateTime, Utc};
 use diesel::{Selectable, deserialize::Queryable, prelude::Insertable, query_builder::AsChangeset};
 use serde::{Deserialize, Serialize};
 
-use crate::entities::{
-    dietary_restriction::model::DietaryRestriction,
-    ingredient::model::{Ingredient, RecipeIngredient, RecipeIngredientWebForm, RecipeIngredientWebView},
+use crate::{
+    common::paginate::{List, deserialize_opt_page},
+    entities::{
+        dietary_restriction::model::DietaryRestriction,
+        ingredient::model::{Ingredient, RecipeIngredient, RecipeIngredientWebForm, RecipeIngredientWebView},
+    },
 };
 
-#[derive(Queryable, Selectable, Serialize, Deserialize, Clone)]
+#[derive(Queryable, Selectable, Serialize, Deserialize, Clone, Debug)]
 #[diesel(table_name = crate::schema::recipe)]
 #[diesel(check_for_backend(diesel::pg::Pg))]
 pub struct Recipe {
@@ -41,6 +44,23 @@ pub struct DetailedRecipe {
     pub recipe: Recipe,
     pub ingredients: Vec<(RecipeIngredient, Ingredient)>,
     pub dietary_restrictions: Vec<DietaryRestriction>,
+}
+
+#[derive(Deserialize, Queryable)]
+#[diesel(table_name = recipe)]
+#[diesel(check_for_backend(diesel::pg::Pg))]
+pub struct RecipeSearchForm {
+    pub id: Option<uuid::Uuid>,
+    pub slug: Option<String>,
+}
+
+impl RecipeSearchForm {
+    pub fn by_id(recipe_id: &uuid::Uuid) -> Self {
+        Self {
+            slug: None,
+            id: Some(*recipe_id),
+        }
+    }
 }
 
 ///
@@ -101,19 +121,31 @@ impl From<DetailedRecipe> for RecipeWebView {
     }
 }
 
-#[derive(Deserialize, Queryable)]
-#[diesel(table_name = recipe)]
-#[diesel(check_for_backend(diesel::pg::Pg))]
-pub struct RecipeSearchForm {
-    pub id: Option<uuid::Uuid>,
-    pub slug: Option<String>,
+impl From<List<DetailedRecipe>> for List<RecipeWebView> {
+    fn from(List { page, max_page, list }: List<DetailedRecipe>) -> Self {
+        List {
+            page,
+            max_page,
+            list: list.into_iter().map(Into::into).collect(),
+        }
+    }
 }
 
-impl RecipeSearchForm {
-    pub fn by_id(recipe_id: &uuid::Uuid) -> Self {
+#[derive(Deserialize, Debug)]
+#[serde(rename_all = "kebab-case")]
+pub struct RecipeQuery {
+    #[serde(default, deserialize_with = "deserialize_opt_page")]
+    pub page: Option<i64>,
+    pub search: Option<String>,
+    pub exclude_dietary_restriction: Option<Vec<uuid::Uuid>>,
+}
+
+impl Default for RecipeQuery {
+    fn default() -> Self {
         Self {
-            slug: None,
-            id: Some(*recipe_id),
+            page: Some(1),
+            search: None,
+            exclude_dietary_restriction: None,
         }
     }
 }

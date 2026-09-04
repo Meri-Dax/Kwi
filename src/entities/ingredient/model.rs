@@ -10,7 +10,7 @@ use crate::entities::{
     recipe::model::Recipe,
 };
 
-#[derive(Identifiable, Queryable, Selectable, Serialize, Deserialize, Clone)]
+#[derive(Identifiable, Queryable, Selectable, Serialize, Deserialize, Clone, Debug)]
 #[diesel(table_name = crate::schema::ingredient)]
 #[diesel(check_for_backend(diesel::pg::Pg))]
 pub struct Ingredient {

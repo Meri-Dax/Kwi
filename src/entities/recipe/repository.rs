@@ -1,13 +1,19 @@
+use std::collections::{HashMap, HashSet};
+
 use chrono::Utc;
 use diesel::{ExpressionMethods, JoinOnDsl, QueryDsl, SelectableHelper};
 use diesel_async::RunQueryDsl;
+use tracing::info;
 
 use crate::{
-    common::repository::RepositoryError,
+    common::{
+        paginate::{List, Paginate},
+        repository::RepositoryError,
+    },
     entities::{
         dietary_restriction::model::DietaryRestriction,
         ingredient::model::{Ingredient, RecipeIngredient, RecipeIngredientForm, RecipeIngredientWebForm},
-        recipe::model::{DetailedRecipe, Recipe, RecipeForm, RecipeSearchForm, RecipeUpdateForm},
+        recipe::model::{DetailedRecipe, Recipe, RecipeForm, RecipeQuery, RecipeSearchForm, RecipeUpdateForm},
     },
     helpers::AppState,
     impl_insert,
@@ -145,4 +151,119 @@ pub async fn update_with_ingredients(
     let result = search_one(app_state, RecipeSearchForm::by_id(recipe_id)).await?;
 
     Ok(result)
+}
+
+pub async fn list(app_state: &AppState, query: &RecipeQuery) -> Result<List<uuid::Uuid>, RepositoryError> {
+    let mut conn = app_state.database.get().await?;
+
+    let RecipeQuery {
+        page,
+        search: _,
+        exclude_dietary_restriction,
+    } = query;
+
+    let page = page.unwrap_or_else(|| RecipeQuery::default().page.unwrap());
+
+    let mut query = recipe::dsl::recipe
+        .select(recipe::dsl::id)
+        .order(recipe::date_created.desc())
+        .into_boxed();
+
+    if let Some(excluded_diet_ids) = exclude_dietary_restriction
+        && !excluded_diet_ids.is_empty()
+    {
+        let excluded_recipe_ids = recipe_ingredient::table
+            .inner_join(ingredient::table.on(ingredient::id.eq(recipe_ingredient::ingredient_id)))
+            .inner_join(
+                ingredient_dietary_restriction::table
+                    .on(ingredient_dietary_restriction::ingredient_id.eq(ingredient::id)),
+            )
+            .filter(ingredient_dietary_restriction::dsl::dietary_restriction_id.eq_any(excluded_diet_ids))
+            .select(recipe_ingredient::dsl::recipe_id)
+            .into_boxed();
+
+        query = query.filter(recipe::dsl::id.ne_all(excluded_recipe_ids));
+    }
+
+    let result = query
+        .paginate(page)
+        .per_page(10)
+        .load_and_count_pages::<uuid::Uuid>(&mut conn)
+        .await?;
+
+    Ok(result)
+}
+
+pub async fn get_from_list(
+    app_state: &AppState,
+    ids_list: &Vec<uuid::Uuid>,
+) -> Result<Vec<DetailedRecipe>, RepositoryError> {
+    let mut conn = app_state.database.get().await?;
+
+    let result: Vec<(
+        Recipe,
+        Option<DietaryRestriction>,
+        Option<RecipeIngredient>,
+        Option<Ingredient>,
+    )> = recipe::table
+        .left_join(recipe_ingredient::table.on(recipe_ingredient::recipe_id.eq(recipe::id)))
+        .left_join(ingredient::table.on(ingredient::id.eq(recipe_ingredient::ingredient_id)))
+        .left_join(
+            ingredient_dietary_restriction::table.on(ingredient_dietary_restriction::ingredient_id.eq(ingredient::id)),
+        )
+        .left_join(
+            dietary_restriction::table
+                .on(dietary_restriction::id.eq(ingredient_dietary_restriction::dietary_restriction_id)),
+        )
+        .filter(recipe::dsl::id.eq_any(ids_list))
+        .select((
+            Recipe::as_returning(),
+            Option::<DietaryRestriction>::as_returning(),
+            Option::<RecipeIngredient>::as_returning(),
+            Option::<Ingredient>::as_returning(),
+        ))
+        .load(&mut conn)
+        .await?;
+
+    let mut grouped: HashMap<
+        uuid::Uuid,
+        (
+            Recipe,
+            HashMap<uuid::Uuid, (RecipeIngredient, Ingredient)>,
+            HashSet<DietaryRestriction>,
+        ),
+    > = HashMap::new();
+
+    for (recipe, diet, recipe_ingredient, ingredient) in result {
+        let entry = grouped
+            .entry(recipe.id)
+            .or_insert_with(|| (recipe, HashMap::new(), HashSet::new()));
+
+        if let Some(ingredient) = ingredient
+            && let Some(recipe_ingredient) = recipe_ingredient
+        {
+            entry.1.insert(ingredient.id, (recipe_ingredient, ingredient));
+        }
+        if let Some(diet) = diet {
+            entry.2.insert(diet);
+        }
+    }
+    info!("ids {:?}", ids_list);
+    info!("recipes {:?}", grouped);
+
+    let ordered: Vec<DetailedRecipe> = ids_list
+        .iter()
+        .map(|&id| {
+            let (recipe, ingredients_map, dietary_restrictions_set) =
+                grouped.remove(&id).expect(&format!("Broken request {:?}", id));
+
+            DetailedRecipe {
+                recipe,
+                ingredients: ingredients_map.into_values().collect(),
+                dietary_restrictions: dietary_restrictions_set.into_iter().collect(),
+            }
+        })
+        .collect();
+
+    Ok(ordered)
 }
