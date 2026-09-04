@@ -8,6 +8,7 @@ use crate::{
         dietary_restriction::model::DietaryRestriction,
         ingredient::model::{Ingredient, RecipeIngredient, RecipeIngredientWebForm, RecipeIngredientWebView},
     },
+    helpers::empty_string_as_none,
 };
 
 #[derive(Queryable, Selectable, Serialize, Deserialize, Clone, Debug)]
@@ -16,6 +17,11 @@ use crate::{
 pub struct Recipe {
     pub id: uuid::Uuid,
     pub slug: String,
+    pub steps: Option<String>,
+    pub description: Option<String>,
+    pub prep_time: Option<i16>,
+    pub cook_time: Option<i16>,
+    pub fresh_for_hours: Option<i16>,
     pub date_created: DateTime<Utc>,
     pub date_updated: DateTime<Utc>,
 }
@@ -25,6 +31,11 @@ pub struct Recipe {
 #[diesel(check_for_backend(diesel::pg::Pg))]
 pub struct RecipeForm {
     pub slug: String,
+    pub steps: Option<String>,
+    pub description: Option<String>,
+    pub prep_time: Option<i16>,
+    pub cook_time: Option<i16>,
+    pub fresh_for_hours: Option<i16>,
 }
 
 #[derive(AsChangeset, Default, PartialEq)]
@@ -32,6 +43,11 @@ pub struct RecipeForm {
 #[diesel(check_for_backend(diesel::pg::Pg))]
 pub struct RecipeUpdateForm {
     pub slug: Option<String>,
+    pub steps: Option<String>,
+    pub description: Option<String>,
+    pub prep_time: Option<i16>,
+    pub cook_time: Option<i16>,
+    pub fresh_for_hours: Option<i16>,
 }
 
 impl RecipeUpdateForm {
@@ -69,24 +85,76 @@ impl RecipeSearchForm {
 #[derive(serde::Deserialize)]
 pub struct RecipeWebForm {
     pub slug: String,
+    #[serde(default, deserialize_with = "empty_string_as_none")]
+    pub steps: Option<String>,
+    #[serde(default, deserialize_with = "empty_string_as_none")]
+    pub description: Option<String>,
+    pub prep_time: Option<i16>,
+    pub cook_time: Option<i16>,
+    pub fresh_for_hours: Option<i16>,
     pub ingredients: Vec<RecipeIngredientWebForm>,
 }
 
 impl From<RecipeWebForm> for (RecipeForm, Vec<RecipeIngredientWebForm>) {
-    fn from(RecipeWebForm { slug, ingredients }: RecipeWebForm) -> Self {
-        (RecipeForm { slug }, ingredients)
+    fn from(
+        RecipeWebForm {
+            slug,
+            steps,
+            description,
+            prep_time,
+            cook_time,
+            fresh_for_hours,
+            ingredients,
+        }: RecipeWebForm,
+    ) -> Self {
+        (
+            RecipeForm {
+                slug,
+                steps,
+                description,
+                prep_time,
+                cook_time,
+                fresh_for_hours,
+            },
+            ingredients,
+        )
     }
 }
 
 #[derive(serde::Deserialize)]
 pub struct RecipeUpdateWebForm {
     pub slug: Option<String>,
+    pub steps: Option<String>,
+    pub description: Option<String>,
+    pub prep_time: Option<i16>,
+    pub cook_time: Option<i16>,
+    pub fresh_for_hours: Option<i16>,
     pub ingredients: Option<Vec<RecipeIngredientWebForm>>,
 }
 
 impl From<RecipeUpdateWebForm> for (RecipeUpdateForm, Option<Vec<RecipeIngredientWebForm>>) {
-    fn from(RecipeUpdateWebForm { slug, ingredients }: RecipeUpdateWebForm) -> Self {
-        (RecipeUpdateForm { slug }, ingredients)
+    fn from(
+        RecipeUpdateWebForm {
+            slug,
+            steps,
+            description,
+            prep_time,
+            cook_time,
+            fresh_for_hours,
+            ingredients,
+        }: RecipeUpdateWebForm,
+    ) -> Self {
+        (
+            RecipeUpdateForm {
+                slug,
+                steps,
+                description,
+                prep_time,
+                cook_time,
+                fresh_for_hours,
+            },
+            ingredients,
+        )
     }
 }
 
@@ -94,6 +162,11 @@ impl From<RecipeUpdateWebForm> for (RecipeUpdateForm, Option<Vec<RecipeIngredien
 pub struct RecipeWebView {
     pub id: uuid::Uuid,
     pub slug: String,
+    pub steps: Option<String>,
+    pub description: Option<String>,
+    pub prep_time: Option<i16>,
+    pub cook_time: Option<i16>,
+    pub fresh_for_hours: Option<i16>,
     pub ingredients: Vec<RecipeIngredientWebView>,
     pub dietary_restrictions: Vec<DietaryRestriction>,
 }
@@ -101,20 +174,19 @@ pub struct RecipeWebView {
 impl From<DetailedRecipe> for RecipeWebView {
     fn from(
         DetailedRecipe {
-            recipe:
-                Recipe {
-                    slug,
-                    id,
-                    date_created: _,
-                    date_updated: _,
-                },
+            recipe,
             ingredients,
             dietary_restrictions,
         }: DetailedRecipe,
     ) -> Self {
         Self {
-            slug,
-            id,
+            slug: recipe.slug,
+            id: recipe.id,
+            steps: recipe.steps,
+            description: recipe.description,
+            prep_time: recipe.prep_time,
+            cook_time: recipe.cook_time,
+            fresh_for_hours: recipe.fresh_for_hours,
             ingredients: ingredients.into_iter().map(RecipeIngredientWebView::from).collect(),
             dietary_restrictions,
         }

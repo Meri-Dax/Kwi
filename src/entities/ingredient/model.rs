@@ -154,18 +154,13 @@ pub struct RecipeIngredientWebView {
 }
 
 impl From<(RecipeIngredient, Ingredient)> for RecipeIngredientWebView {
-    fn from(
-        (
-            RecipeIngredient {
-                qty,
-                unit,
-                recipe_id: _,
-                ingredient_id: _,
-            },
-            Ingredient { id, slug },
-        ): (RecipeIngredient, Ingredient),
-    ) -> Self {
-        Self { id, slug, qty, unit }
+    fn from((recipe_ingredient, Ingredient { id, slug }): (RecipeIngredient, Ingredient)) -> Self {
+        Self {
+            id,
+            slug,
+            qty: recipe_ingredient.qty,
+            unit: recipe_ingredient.unit,
+        }
     }
 }
 
@@ -179,12 +174,7 @@ pub struct RecipeIngredientWebForm {
 impl From<(&Recipe, &RecipeIngredientWebForm)> for RecipeIngredientForm {
     fn from(
         (
-            &Recipe {
-                id: recipe_id,
-                slug: _,
-                date_created: _,
-                date_updated: _,
-            },
+            recipe,
             &RecipeIngredientWebForm {
                 id: ingredient_id,
                 qty,
@@ -193,7 +183,7 @@ impl From<(&Recipe, &RecipeIngredientWebForm)> for RecipeIngredientForm {
         ): (&Recipe, &RecipeIngredientWebForm),
     ) -> Self {
         Self {
-            recipe_id,
+            recipe_id: recipe.id,
             ingredient_id,
             qty,
             unit,

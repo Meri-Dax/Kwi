@@ -5,7 +5,7 @@ use actix_web::{
 };
 use kwi::{
     CONFIG,
-    helpers::{AppState, Config},
+    helpers::{AppState, Config, malformed_request_handler},
     route,
 };
 use tracing::info;
@@ -34,6 +34,8 @@ async fn main() -> std::io::Result<()> {
         App::new()
             .wrap(actix_web::middleware::Logger::default())
             .wrap(NormalizePath::new(TrailingSlash::Trim))
+            .app_data(malformed_request_handler::json())
+            .app_data(malformed_request_handler::path())
             .app_data(Data::new(app_state.clone()))
             .configure(route::config)
     })
