@@ -29,7 +29,7 @@ macro_rules! impl_insert {
             let mut conn = database.get().await?;
 
             let result = diesel::insert_into($table)
-                .values(&payload)
+                .values(payload)
                 .returning(<$model>::as_returning())
                 .get_result(&mut conn)
                 .await?;
