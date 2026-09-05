@@ -1,4 +1,4 @@
-use actix_web::{HttpResponse, Responder, post, web};
+use actix_web::{HttpResponse, Responder, get, post, web};
 use tracing::error;
 
 use crate::{
@@ -25,6 +25,22 @@ pub async fn create(app_state: web::Data<AppState>, payload: web::Json<RecipeLog
     }
 }
 
+#[get("/logistics/{id}")]
+pub async fn get(app_state: web::Data<AppState>, search_id: web::Path<uuid::Uuid>) -> impl Responder {
+    match logistics::service::read(&app_state, &search_id.into_inner()).await {
+        Ok(e) => HttpResponse::Ok().json(RecipeLogisticsWebView::from(e)),
+        Err(RepositoryError::NotFound) => http_response_message::NOT_FOUND.generic_response(),
+        Err(RepositoryError::Database(e)) => {
+            error!("{}", e);
+            http_response_message::INTERNAL_SERVER_ERROR.generic_response()
+        }
+        Err(e) => {
+            error!("{}", e);
+            http_response_message::BAD_REQUEST.generic_response()
+        }
+    }
+}
+
 pub fn config(cfg: &mut web::ServiceConfig) {
-    cfg.service(create);
+    cfg.service(create).service(get);
 }
