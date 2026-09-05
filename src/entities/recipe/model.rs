@@ -62,23 +62,6 @@ pub struct DetailedRecipe {
     pub dietary_restrictions: Vec<DietaryRestriction>,
 }
 
-#[derive(Deserialize, Queryable)]
-#[diesel(table_name = recipe)]
-#[diesel(check_for_backend(diesel::pg::Pg))]
-pub struct RecipeSearchForm {
-    pub id: Option<uuid::Uuid>,
-    pub slug: Option<String>,
-}
-
-impl RecipeSearchForm {
-    pub fn by_id(recipe_id: &uuid::Uuid) -> Self {
-        Self {
-            slug: None,
-            id: Some(*recipe_id),
-        }
-    }
-}
-
 ///
 /// Web service structs
 ///

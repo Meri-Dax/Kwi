@@ -8,10 +8,7 @@ use crate::{
         ingredient::model::RecipeIngredientWebForm,
         recipe::{
             self,
-            model::{
-                RecipeForm, RecipeQuery, RecipeSearchForm, RecipeUpdateForm, RecipeUpdateWebForm, RecipeWebForm,
-                RecipeWebView,
-            },
+            model::{RecipeForm, RecipeQuery, RecipeUpdateForm, RecipeUpdateWebForm, RecipeWebForm, RecipeWebView},
         },
     },
     helpers::AppState,
@@ -21,7 +18,7 @@ use crate::{
 async fn create(app_state: web::Data<AppState>, payload_json: web::Json<RecipeWebForm>) -> impl Responder {
     let (recipe, ingredients): (RecipeForm, Vec<RecipeIngredientWebForm>) = payload_json.into_inner().into();
 
-    match recipe::service::insert_with_ingredients(&app_state, recipe, ingredients).await {
+    match recipe::service::insert_with_ingredients(&app_state, &recipe, &ingredients).await {
         Ok(recipe) => HttpResponse::Ok().json(RecipeWebView::from(recipe)),
         Err(RepositoryError::Database(e)) => {
             error!("{}", e);
@@ -58,15 +55,7 @@ async fn update(
 
 #[get("/recipe/{id}")]
 async fn view(app_state: web::Data<AppState>, search: web::Path<uuid::Uuid>) -> impl Responder {
-    match recipe::service::search_one(
-        &app_state,
-        RecipeSearchForm {
-            id: Some(search.into_inner()),
-            slug: None,
-        },
-    )
-    .await
-    {
+    match recipe::service::search_one(&app_state, &search.into_inner()).await {
         Ok(recipe) => HttpResponse::Ok().json(RecipeWebView::from(recipe)),
         Err(RepositoryError::Database(e)) => {
             error!("{}", e);
