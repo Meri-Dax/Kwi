@@ -24,7 +24,7 @@ macro_rules! impl_insert {
     ($model:ty, $form:ty, $table:expr) => {
         pub async fn insert(
             AppState { database }: &AppState,
-            payload: $form,
+            payload: &$form,
         ) -> Result<$model, $crate::common::repository::RepositoryError> {
             let mut conn = database.get().await?;
 

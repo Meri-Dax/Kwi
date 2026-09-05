@@ -6,8 +6,8 @@ use crate::{
     entities::dietary_restriction::{
         self,
         model::{
-            DietaryRestrictionForm, DietaryRestrictionSearchForm, DietaryRestrictionUpdateForm,
-            DietaryRestrictionUpdateWebForm, DietaryRestrictionWebForm, DietaryRestrictionWebView,
+            DietaryRestrictionSearchForm, DietaryRestrictionUpdateForm, DietaryRestrictionUpdateWebForm,
+            DietaryRestrictionWebForm, DietaryRestrictionWebView,
         },
     },
     helpers::AppState,
@@ -54,10 +54,8 @@ async fn update(
 }
 
 #[post("/diet")]
-async fn create(app_state: web::Data<AppState>, payload_json: web::Json<DietaryRestrictionWebForm>) -> impl Responder {
-    let payload: DietaryRestrictionForm = payload_json.into_inner().into();
-
-    match dietary_restriction::service::insert(&app_state, payload).await {
+async fn create(app_state: web::Data<AppState>, payload: web::Json<DietaryRestrictionWebForm>) -> impl Responder {
+    match dietary_restriction::service::insert(&app_state, &payload.into_inner().into()).await {
         Ok(dietary_restriction) => HttpResponse::Ok().json(DietaryRestrictionWebView::from(dietary_restriction)),
         Err(RepositoryError::Database(e)) => {
             error!("{}", e);

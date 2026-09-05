@@ -12,7 +12,10 @@ use crate::{
     helpers::AppState,
 };
 
-pub async fn insert(app_state: &AppState, form: DietaryRestrictionForm) -> Result<DietaryRestriction, RepositoryError> {
+pub async fn insert(
+    app_state: &AppState,
+    form: &DietaryRestrictionForm,
+) -> Result<DietaryRestriction, RepositoryError> {
     dietary_restriction::repository::insert(app_state, form).await
 }
 
