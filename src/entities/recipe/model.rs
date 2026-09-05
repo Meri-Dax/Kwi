@@ -5,8 +5,9 @@ use serde::{Deserialize, Serialize};
 use crate::{
     common::paginate::{List, deserialize_opt_page},
     entities::{
-        dietary_restriction::model::DietaryRestriction,
+        dietary_restriction::model::{DietaryRestriction, DietaryRestrictionWebView},
         ingredient::model::{Ingredient, RecipeIngredient, RecipeIngredientWebForm, RecipeIngredientWebView},
+        logistics::model::{RecipeLogistics, RecipeLogisticsWebView, RecipeRecipeLogisticsWebForm},
     },
     helpers::empty_string_as_none,
 };
@@ -60,6 +61,7 @@ pub struct DetailedRecipe {
     pub recipe: Recipe,
     pub ingredients: Vec<(RecipeIngredient, Ingredient)>,
     pub dietary_restrictions: Vec<DietaryRestriction>,
+    pub logistics: Vec<RecipeLogistics>,
 }
 
 ///
@@ -76,9 +78,16 @@ pub struct RecipeWebForm {
     pub cook_time: Option<i16>,
     pub fresh_for_hours: Option<i16>,
     pub ingredients: Vec<RecipeIngredientWebForm>,
+    pub logistics: Vec<uuid::Uuid>,
 }
 
-impl From<RecipeWebForm> for (RecipeForm, Vec<RecipeIngredientWebForm>) {
+impl From<RecipeWebForm>
+    for (
+        RecipeForm,
+        Vec<RecipeIngredientWebForm>,
+        Vec<RecipeRecipeLogisticsWebForm>,
+    )
+{
     fn from(
         RecipeWebForm {
             slug,
@@ -88,6 +97,7 @@ impl From<RecipeWebForm> for (RecipeForm, Vec<RecipeIngredientWebForm>) {
             cook_time,
             fresh_for_hours,
             ingredients,
+            logistics,
         }: RecipeWebForm,
     ) -> Self {
         (
@@ -100,6 +110,7 @@ impl From<RecipeWebForm> for (RecipeForm, Vec<RecipeIngredientWebForm>) {
                 fresh_for_hours,
             },
             ingredients,
+            logistics.into_iter().map(Into::into).collect(),
         )
     }
 }
@@ -151,7 +162,8 @@ pub struct RecipeWebView {
     pub cook_time: Option<i16>,
     pub fresh_for_hours: Option<i16>,
     pub ingredients: Vec<RecipeIngredientWebView>,
-    pub dietary_restrictions: Vec<DietaryRestriction>,
+    pub dietary_restrictions: Vec<DietaryRestrictionWebView>,
+    pub logistics: Vec<RecipeLogisticsWebView>,
 }
 
 impl From<DetailedRecipe> for RecipeWebView {
@@ -160,6 +172,7 @@ impl From<DetailedRecipe> for RecipeWebView {
             recipe,
             ingredients,
             dietary_restrictions,
+            logistics,
         }: DetailedRecipe,
     ) -> Self {
         Self {
@@ -171,7 +184,8 @@ impl From<DetailedRecipe> for RecipeWebView {
             cook_time: recipe.cook_time,
             fresh_for_hours: recipe.fresh_for_hours,
             ingredients: ingredients.into_iter().map(RecipeIngredientWebView::from).collect(),
-            dietary_restrictions,
+            dietary_restrictions: dietary_restrictions.into_iter().map(Into::into).collect(),
+            logistics: logistics.into_iter().map(Into::into).collect(),
         }
     }
 }

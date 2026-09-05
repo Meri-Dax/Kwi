@@ -13,11 +13,15 @@ use crate::{
     entities::{
         dietary_restriction::model::DietaryRestriction,
         ingredient::model::{Ingredient, RecipeIngredient, RecipeIngredientForm, RecipeIngredientWebForm},
+        logistics::model::{RecipeLogistics, RecipeRecipeLogisticsForm, RecipeRecipeLogisticsWebForm},
         recipe::model::{DetailedRecipe, Recipe, RecipeForm, RecipeQuery, RecipeUpdateForm},
     },
     helpers::AppState,
     impl_insert,
-    schema::{dietary_restriction, ingredient, ingredient_dietary_restriction, recipe, recipe_ingredient},
+    schema::{
+        dietary_restriction, ingredient, ingredient_dietary_restriction, recipe, recipe_ingredient, recipe_logistics,
+        recipe_recipe_logistics_xref,
+    },
 };
 
 impl_insert!(Recipe, RecipeForm, crate::schema::recipe::table);
@@ -37,7 +41,7 @@ pub async fn read(app_state: &AppState, search_id: &uuid::Uuid) -> Result<Detail
 
             let ingredients: Vec<(RecipeIngredient, Ingredient)> = recipe_ingredient::dsl::recipe_ingredient
                 .inner_join(ingredient::table)
-                .filter(recipe_ingredient::dsl::recipe_id.eq(recipe.id))
+                .filter(recipe_ingredient::dsl::recipe_id.eq(search_id))
                 .select((RecipeIngredient::as_select(), Ingredient::as_select()))
                 .load(ts_conn)
                 .await?;
@@ -49,8 +53,19 @@ pub async fn read(app_state: &AppState, search_id: &uuid::Uuid) -> Result<Detail
                 )
                 .inner_join(ingredient::table.on(ingredient::id.eq(ingredient_dietary_restriction::ingredient_id)))
                 .inner_join(recipe_ingredient::table.on(recipe_ingredient::ingredient_id.eq(ingredient::id)))
-                .filter(recipe_ingredient::recipe_id.eq(&recipe.id))
+                .filter(recipe_ingredient::recipe_id.eq(search_id))
                 .select(DietaryRestriction::as_returning())
+                .distinct()
+                .load(ts_conn)
+                .await?;
+
+            let logistics: Vec<RecipeLogistics> = recipe_logistics::table
+                .inner_join(
+                    recipe_recipe_logistics_xref::table
+                        .on(recipe_recipe_logistics_xref::recipe_logistics_id.eq(recipe_logistics::id)),
+                )
+                .filter(recipe_recipe_logistics_xref::recipe_id.eq(search_id))
+                .select(RecipeLogistics::as_returning())
                 .distinct()
                 .load(ts_conn)
                 .await?;
@@ -59,6 +74,7 @@ pub async fn read(app_state: &AppState, search_id: &uuid::Uuid) -> Result<Detail
                 recipe,
                 ingredients,
                 dietary_restrictions,
+                logistics,
             })
         })
         .await?;
@@ -66,10 +82,11 @@ pub async fn read(app_state: &AppState, search_id: &uuid::Uuid) -> Result<Detail
     Ok(result)
 }
 
-pub async fn insert_with_ingredient(
+pub async fn insert_with_xref(
     app_state: &AppState,
     recipe_form: &RecipeForm,
     recipe_ingredients: &Vec<RecipeIngredientWebForm>,
+    recipe_logistics: &Vec<RecipeRecipeLogisticsWebForm>,
 ) -> Result<DetailedRecipe, RepositoryError> {
     let mut conn = app_state.database.get().await?;
     let mut tx = conn.build_transaction().read_write();
@@ -94,6 +111,19 @@ pub async fn insert_with_ingredient(
                     .await?;
             }
 
+            if !recipe_logistics.is_empty() {
+                let recipe_logistics_links: Vec<RecipeRecipeLogisticsForm> = recipe_logistics
+                    .iter()
+                    .map(|&rl| RecipeRecipeLogisticsForm::from((&recipe, &rl)))
+                    .collect();
+                info!("Attempting to insert: {:?}", recipe_logistics_links);
+
+                diesel::insert_into(recipe_recipe_logistics_xref::table)
+                    .values(&recipe_logistics_links)
+                    .execute(ts_conn)
+                    .await?;
+            }
+
             Ok(recipe)
         })
         .await?;
@@ -103,7 +133,7 @@ pub async fn insert_with_ingredient(
     Ok(result)
 }
 
-pub async fn update_with_ingredients(
+pub async fn update_with_xref(
     app_state: &AppState,
     recipe_id: &uuid::Uuid,
     recipe_form: &RecipeUpdateForm,
@@ -199,7 +229,12 @@ pub async fn get_from_list(
         Option<DietaryRestriction>,
         Option<RecipeIngredient>,
         Option<Ingredient>,
+        Option<RecipeLogistics>,
     )> = recipe::table
+        .left_join(recipe_recipe_logistics_xref::table.on(recipe_recipe_logistics_xref::recipe_id.eq(recipe::id)))
+        .left_join(
+            recipe_logistics::table.on(recipe_logistics::id.eq(recipe_recipe_logistics_xref::recipe_logistics_id)),
+        )
         .left_join(recipe_ingredient::table.on(recipe_ingredient::recipe_id.eq(recipe::id)))
         .left_join(ingredient::table.on(ingredient::id.eq(recipe_ingredient::ingredient_id)))
         .left_join(
@@ -215,6 +250,7 @@ pub async fn get_from_list(
             Option::<DietaryRestriction>::as_returning(),
             Option::<RecipeIngredient>::as_returning(),
             Option::<Ingredient>::as_returning(),
+            Option::<RecipeLogistics>::as_returning(),
         ))
         .load(&mut conn)
         .await?;
@@ -225,13 +261,14 @@ pub async fn get_from_list(
             Recipe,
             HashMap<uuid::Uuid, (RecipeIngredient, Ingredient)>,
             HashSet<DietaryRestriction>,
+            HashSet<RecipeLogistics>,
         ),
     > = HashMap::new();
 
-    for (recipe, diet, recipe_ingredient, ingredient) in result {
+    for (recipe, diet, recipe_ingredient, ingredient, logistics) in result {
         let entry = grouped
             .entry(recipe.id)
-            .or_insert_with(|| (recipe, HashMap::new(), HashSet::new()));
+            .or_insert_with(|| (recipe, HashMap::new(), HashSet::new(), HashSet::new()));
 
         if let Some(ingredient) = ingredient
             && let Some(recipe_ingredient) = recipe_ingredient
@@ -241,6 +278,9 @@ pub async fn get_from_list(
         if let Some(diet) = diet {
             entry.2.insert(diet);
         }
+        if let Some(logistics) = logistics {
+            entry.3.insert(logistics);
+        }
     }
     info!("ids {:?}", ids_list);
     info!("recipes {:?}", grouped);
@@ -248,13 +288,14 @@ pub async fn get_from_list(
     let ordered: Vec<DetailedRecipe> = ids_list
         .iter()
         .map(|&id| {
-            let (recipe, ingredients_map, dietary_restrictions_set) =
+            let (recipe, ingredients_map, dietary_restrictions_set, recipe_logistics_set) =
                 grouped.remove(&id).expect(&format!("Broken request {:?}", id));
 
             DetailedRecipe {
                 recipe,
                 ingredients: ingredients_map.into_values().collect(),
                 dietary_restrictions: dietary_restrictions_set.into_iter().collect(),
+                logistics: recipe_logistics_set.into_iter().collect(),
             }
         })
         .collect();

@@ -6,6 +6,7 @@ use crate::{
     common::{http_response_message, paginate::List, repository::RepositoryError},
     entities::{
         ingredient::model::RecipeIngredientWebForm,
+        logistics::model::RecipeRecipeLogisticsWebForm,
         recipe::{
             self,
             model::{RecipeForm, RecipeQuery, RecipeUpdateForm, RecipeUpdateWebForm, RecipeWebForm, RecipeWebView},
@@ -16,9 +17,13 @@ use crate::{
 
 #[post("/recipe")]
 async fn create(app_state: web::Data<AppState>, payload_json: web::Json<RecipeWebForm>) -> impl Responder {
-    let (recipe, ingredients): (RecipeForm, Vec<RecipeIngredientWebForm>) = payload_json.into_inner().into();
+    let (recipe, ingredients, logistics): (
+        RecipeForm,
+        Vec<RecipeIngredientWebForm>,
+        Vec<RecipeRecipeLogisticsWebForm>,
+    ) = payload_json.into_inner().into();
 
-    match recipe::service::insert_with_ingredients(&app_state, &recipe, &ingredients).await {
+    match recipe::service::insert_with_ingredients(&app_state, &recipe, &ingredients, &logistics).await {
         Ok(recipe) => HttpResponse::Ok().json(RecipeWebView::from(recipe)),
         Err(RepositoryError::Database(e)) => {
             error!("{}", e);

@@ -2,6 +2,7 @@ use crate::{
     common::{paginate::List, repository::RepositoryError},
     entities::{
         ingredient::model::RecipeIngredientWebForm,
+        logistics::model::RecipeRecipeLogisticsWebForm,
         recipe::{
             self,
             model::{DetailedRecipe, Recipe, RecipeForm, RecipeQuery, RecipeUpdateForm},
@@ -18,8 +19,9 @@ pub async fn insert_with_ingredients(
     app_state: &AppState,
     recipe_form: &RecipeForm,
     ingredients: &Vec<RecipeIngredientWebForm>,
+    logistics: &Vec<RecipeRecipeLogisticsWebForm>,
 ) -> Result<DetailedRecipe, RepositoryError> {
-    recipe::repository::insert_with_ingredient(app_state, recipe_form, ingredients).await
+    recipe::repository::insert_with_xref(app_state, recipe_form, ingredients, logistics).await
 }
 
 pub async fn update_with_ingredients(
@@ -28,7 +30,7 @@ pub async fn update_with_ingredients(
     recipe_form: &RecipeUpdateForm,
     ingredients: &Option<Vec<RecipeIngredientWebForm>>,
 ) -> Result<DetailedRecipe, RepositoryError> {
-    recipe::repository::update_with_ingredients(app_state, id, recipe_form, ingredients).await
+    recipe::repository::update_with_xref(app_state, id, recipe_form, ingredients).await
 }
 
 pub async fn search_one(app_state: &AppState, search_id: &uuid::Uuid) -> Result<DetailedRecipe, RepositoryError> {

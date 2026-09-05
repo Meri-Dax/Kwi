@@ -97,7 +97,7 @@ impl From<IngredientWebForm> for (IngredientForm, Vec<uuid::Uuid>) {
     }
 }
 
-#[derive(serde::Deserialize)]
+#[derive(Deserialize)]
 pub struct IngredientUpdateWebForm {
     pub slug: Option<String>,
     pub dietary_restrictions: Option<Vec<uuid::Uuid>>,

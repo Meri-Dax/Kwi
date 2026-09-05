@@ -9,7 +9,7 @@ use serde::{Deserialize, Serialize};
 
 use crate::entities::ingredient::model::Ingredient;
 
-#[derive(Queryable, Selectable, Serialize, Deserialize, PartialEq, Hash, Eq, Debug)]
+#[derive(Queryable, Selectable, PartialEq, Hash, Eq, Debug)]
 #[diesel(table_name = crate::schema::dietary_restriction)]
 #[diesel(check_for_backend(diesel::pg::Pg))]
 pub struct DietaryRestriction {
@@ -44,7 +44,7 @@ pub struct IngredientDietaryRestriction {
 ///
 /// Web service structs
 ///
-#[derive(serde::Deserialize)]
+#[derive(Deserialize)]
 pub struct DietaryRestrictionWebForm {
     pub slug: String,
 }
@@ -55,7 +55,7 @@ impl From<DietaryRestrictionWebForm> for DietaryRestrictionForm {
     }
 }
 
-#[derive(serde::Deserialize)]
+#[derive(Deserialize)]
 pub struct DietaryRestrictionUpdateWebForm {
     pub slug: Option<String>,
 }
