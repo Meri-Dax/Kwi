@@ -131,20 +131,6 @@ impl From<(Ingredient, Vec<DietaryRestriction>)> for IngredientWebView {
     }
 }
 
-#[derive(Deserialize, Queryable)]
-#[diesel(table_name = ingredient)]
-#[diesel(check_for_backend(diesel::pg::Pg))]
-pub struct IngredientSearchForm {
-    pub id: Option<uuid::Uuid>,
-    pub slug: Option<String>,
-}
-
-impl IngredientSearchForm {
-    pub fn empty() -> Self {
-        Self { id: None, slug: None }
-    }
-}
-
 #[derive(Serialize)]
 pub struct RecipeIngredientWebView {
     pub id: uuid::Uuid,

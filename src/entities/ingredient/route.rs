@@ -8,8 +8,7 @@ use crate::{
         ingredient::{
             self,
             model::{
-                IngredientForm, IngredientSearchForm, IngredientUpdateForm, IngredientUpdateWebForm, IngredientWebForm,
-                IngredientWebView,
+                IngredientForm, IngredientUpdateForm, IngredientUpdateWebForm, IngredientWebForm, IngredientWebView,
             },
         },
     },
@@ -57,15 +56,7 @@ async fn update(
 
 #[get("/ingredient/{id}")]
 async fn view(app_state: web::Data<AppState>, search: web::Path<uuid::Uuid>) -> impl Responder {
-    match ingredient::service::search_one(
-        &app_state,
-        IngredientSearchForm {
-            id: Some(search.into_inner()),
-            slug: None,
-        },
-    )
-    .await
-    {
+    match ingredient::service::read(&app_state, &search.into_inner()).await {
         Ok(result) => HttpResponse::Ok().json(IngredientWebView::from(result)),
         Err(RepositoryError::NotFound) => http_response_message::NOT_FOUND.generic_response(),
         Err(RepositoryError::Database(e)) => {
@@ -81,7 +72,7 @@ async fn view(app_state: web::Data<AppState>, search: web::Path<uuid::Uuid>) -> 
 
 #[get("/ingredient")]
 async fn list(app_state: web::Data<AppState>) -> impl Responder {
-    let ingredients_list = match ingredient::service::list(&app_state, IngredientSearchForm::empty()).await {
+    let ingredients_list = match ingredient::service::list(&app_state).await {
         Ok(e) => e,
         Err(RepositoryError::NotFound) => {
             return HttpResponse::Ok().json(Vec::<IngredientWebView>::new());

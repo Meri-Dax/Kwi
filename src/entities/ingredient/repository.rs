@@ -5,7 +5,7 @@ use crate::{
     common::repository::RepositoryError,
     entities::{
         dietary_restriction::model::{DietaryRestriction, IngredientDietaryRestriction},
-        ingredient::model::{Ingredient, IngredientForm, IngredientSearchForm, IngredientUpdateForm},
+        ingredient::model::{Ingredient, IngredientForm, IngredientUpdateForm},
     },
     helpers::AppState,
     impl_insert,
@@ -14,20 +14,14 @@ use crate::{
 
 impl_insert!(Ingredient, IngredientForm, crate::schema::ingredient::table);
 
-pub async fn search_one(app_state: &AppState, search: IngredientSearchForm) -> Result<Ingredient, RepositoryError> {
+pub async fn read(app_state: &AppState, search_id: &uuid::Uuid) -> Result<Ingredient, RepositoryError> {
     let mut conn = app_state.database.get().await?;
 
-    let mut search_query = ingredient::dsl::ingredient.select(Ingredient::as_select()).into_boxed();
-
-    if let Some(search_id) = search.id {
-        search_query = search_query.filter(ingredient::dsl::id.eq(search_id));
-    }
-
-    if let Some(search_slug) = search.slug {
-        search_query = search_query.filter(ingredient::dsl::slug.eq(search_slug));
-    }
-
-    let result: Ingredient = search_query.first(&mut conn).await?;
+    let result = ingredient::dsl::ingredient
+        .select(Ingredient::as_select())
+        .filter(ingredient::dsl::id.eq(search_id))
+        .first(&mut conn)
+        .await?;
 
     Ok(result)
 }
@@ -170,20 +164,13 @@ pub async fn update_with_diet(
     Ok(result)
 }
 
-pub async fn search(app_state: &AppState, search: IngredientSearchForm) -> Result<Vec<Ingredient>, RepositoryError> {
+pub async fn list(app_state: &AppState) -> Result<Vec<Ingredient>, RepositoryError> {
     let mut conn = app_state.database.get().await?;
 
-    let mut search_query = ingredient::dsl::ingredient.select(Ingredient::as_select()).into_boxed();
-
-    if let Some(search_id) = search.id {
-        search_query = search_query.filter(ingredient::dsl::id.eq(search_id));
-    }
-
-    if let Some(search_slug) = search.slug {
-        search_query = search_query.filter(ingredient::dsl::slug.eq(search_slug));
-    }
-
-    let result: Vec<Ingredient> = search_query.load(&mut conn).await?;
+    let result = ingredient::dsl::ingredient
+        .select(Ingredient::as_select())
+        .load(&mut conn)
+        .await?;
 
     Ok(result)
 }

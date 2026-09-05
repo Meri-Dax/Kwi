@@ -4,7 +4,7 @@ use crate::{
         dietary_restriction::{self, model::DietaryRestriction},
         ingredient::{
             self,
-            model::{Ingredient, IngredientForm, IngredientSearchForm, IngredientUpdateForm},
+            model::{Ingredient, IngredientForm, IngredientUpdateForm},
         },
     },
     helpers::AppState,
@@ -14,17 +14,17 @@ pub async fn insert(app_state: &AppState, form: &IngredientForm) -> Result<Ingre
     ingredient::repository::insert(app_state, form).await
 }
 
-pub async fn list(app_state: &AppState, search_form: IngredientSearchForm) -> Result<Vec<Ingredient>, RepositoryError> {
-    let ingredient = ingredient::repository::search(app_state, search_form).await?;
+pub async fn list(app_state: &AppState) -> Result<Vec<Ingredient>, RepositoryError> {
+    let ingredient = ingredient::repository::list(app_state).await?;
 
     Ok(ingredient)
 }
 
-pub async fn search_one(
+pub async fn read(
     app_state: &AppState,
-    search_form: IngredientSearchForm,
+    search_id: &uuid::Uuid,
 ) -> Result<(Ingredient, Vec<DietaryRestriction>), RepositoryError> {
-    let ingredient = ingredient::repository::search_one(app_state, search_form).await?;
+    let ingredient = ingredient::repository::read(app_state, search_id).await?;
 
     let diet_restrictions = dietary_restriction::repository::get_for_ingredient(app_state, &ingredient).await;
 
