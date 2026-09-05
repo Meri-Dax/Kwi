@@ -125,12 +125,12 @@ diesel::joinable!(ingredient_dietary_restriction -> dietary_restriction (dietary
 diesel::joinable!(ingredient_dietary_restriction -> ingredient (ingredient_id));
 diesel::joinable!(recipe_ingredient -> ingredient (ingredient_id));
 diesel::joinable!(recipe_ingredient -> recipe (recipe_id));
-diesel::joinable!(recipe_recipe_course_xref -> dietary_restriction (recipe_course_id));
-diesel::joinable!(recipe_recipe_course_xref -> ingredient (recipe_id));
-diesel::joinable!(recipe_recipe_equipment_xref -> dietary_restriction (recipe_equipment_id));
-diesel::joinable!(recipe_recipe_equipment_xref -> ingredient (recipe_id));
-diesel::joinable!(recipe_recipe_logistics_xref -> dietary_restriction (recipe_logistics_id));
-diesel::joinable!(recipe_recipe_logistics_xref -> ingredient (recipe_id));
+diesel::joinable!(recipe_recipe_course_xref -> recipe (recipe_id));
+diesel::joinable!(recipe_recipe_course_xref -> recipe_course (recipe_course_id));
+diesel::joinable!(recipe_recipe_equipment_xref -> recipe (recipe_id));
+diesel::joinable!(recipe_recipe_equipment_xref -> recipe_equipment (recipe_equipment_id));
+diesel::joinable!(recipe_recipe_logistics_xref -> recipe (recipe_id));
+diesel::joinable!(recipe_recipe_logistics_xref -> recipe_logistics (recipe_logistics_id));
 
 diesel::allow_tables_to_appear_in_same_query!(
     dietary_restriction,

@@ -41,6 +41,25 @@ pub async fn get(app_state: web::Data<AppState>, search_id: web::Path<uuid::Uuid
     }
 }
 
+#[get("/logistics")]
+pub async fn list(app_state: web::Data<AppState>) -> impl Responder {
+    match logistics::service::list(&app_state).await {
+        Ok(list) => {
+            let list: Vec<RecipeLogisticsWebView> = list.into_iter().map(RecipeLogisticsWebView::from).collect();
+            HttpResponse::Ok().json(list)
+        }
+        Err(RepositoryError::NotFound) => HttpResponse::Ok().json(Vec::<RecipeLogisticsWebView>::new()),
+        Err(RepositoryError::Database(e)) => {
+            error!("{}", e);
+            http_response_message::INTERNAL_SERVER_ERROR.generic_response()
+        }
+        Err(e) => {
+            error!("{}", e);
+            http_response_message::BAD_REQUEST.generic_response()
+        }
+    }
+}
+
 pub fn config(cfg: &mut web::ServiceConfig) {
-    cfg.service(create).service(get);
+    cfg.service(create).service(get).service(list);
 }

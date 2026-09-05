@@ -70,9 +70,8 @@ async fn create(app_state: web::Data<AppState>, payload: web::Json<DietaryRestri
 async fn list(app_state: web::Data<AppState>) -> impl Responder {
     match dietary_restriction::service::list(&app_state).await {
         Ok(list) => {
-            let public_view: Vec<DietaryRestrictionWebView> = list.into_iter().map(Into::into).collect();
-
-            HttpResponse::Ok().json(public_view)
+            let list: Vec<DietaryRestrictionWebView> = list.into_iter().map(Into::into).collect();
+            HttpResponse::Ok().json(list)
         }
         Err(RepositoryError::Database(e)) => {
             error!("{}", e);
