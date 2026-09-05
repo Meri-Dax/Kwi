@@ -55,6 +55,26 @@ diesel::table! {
 }
 
 diesel::table! {
+    recipe_course (id) {
+        id -> Uuid,
+        #[max_length = 255]
+        slug -> Varchar,
+        date_created -> Timestamptz,
+        date_updated -> Timestamptz,
+    }
+}
+
+diesel::table! {
+    recipe_equipment (id) {
+        id -> Uuid,
+        #[max_length = 255]
+        slug -> Varchar,
+        date_created -> Timestamptz,
+        date_updated -> Timestamptz,
+    }
+}
+
+diesel::table! {
     use diesel::sql_types::*;
     use super::sql_types::IngredientUnit;
 
@@ -67,15 +87,61 @@ diesel::table! {
     }
 }
 
+diesel::table! {
+    recipe_logistics (id) {
+        id -> Uuid,
+        #[max_length = 255]
+        slug -> Varchar,
+        date_created -> Timestamptz,
+        date_updated -> Timestamptz,
+    }
+}
+
+diesel::table! {
+    recipe_recipe_course_xref (id) {
+        id -> Uuid,
+        recipe_id -> Uuid,
+        recipe_course_id -> Uuid,
+    }
+}
+
+diesel::table! {
+    recipe_recipe_equipment_xref (id) {
+        id -> Uuid,
+        recipe_id -> Uuid,
+        recipe_equipment_id -> Uuid,
+    }
+}
+
+diesel::table! {
+    recipe_recipe_logistics_xref (id) {
+        id -> Uuid,
+        recipe_id -> Uuid,
+        recipe_logistics_id -> Uuid,
+    }
+}
+
 diesel::joinable!(ingredient_dietary_restriction -> dietary_restriction (dietary_restriction_id));
 diesel::joinable!(ingredient_dietary_restriction -> ingredient (ingredient_id));
 diesel::joinable!(recipe_ingredient -> ingredient (ingredient_id));
 diesel::joinable!(recipe_ingredient -> recipe (recipe_id));
+diesel::joinable!(recipe_recipe_course_xref -> dietary_restriction (recipe_course_id));
+diesel::joinable!(recipe_recipe_course_xref -> ingredient (recipe_id));
+diesel::joinable!(recipe_recipe_equipment_xref -> dietary_restriction (recipe_equipment_id));
+diesel::joinable!(recipe_recipe_equipment_xref -> ingredient (recipe_id));
+diesel::joinable!(recipe_recipe_logistics_xref -> dietary_restriction (recipe_logistics_id));
+diesel::joinable!(recipe_recipe_logistics_xref -> ingredient (recipe_id));
 
 diesel::allow_tables_to_appear_in_same_query!(
     dietary_restriction,
     ingredient,
     ingredient_dietary_restriction,
     recipe,
+    recipe_course,
+    recipe_equipment,
     recipe_ingredient,
+    recipe_logistics,
+    recipe_recipe_course_xref,
+    recipe_recipe_equipment_xref,
+    recipe_recipe_logistics_xref,
 );
