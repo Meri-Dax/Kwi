@@ -6,8 +6,8 @@ use crate::{
     entities::dietary_restriction::{
         self,
         model::{
-            DietaryRestrictionSearchForm, DietaryRestrictionUpdateForm, DietaryRestrictionUpdateWebForm,
-            DietaryRestrictionWebForm, DietaryRestrictionWebView,
+            DietaryRestrictionUpdateForm, DietaryRestrictionUpdateWebForm, DietaryRestrictionWebForm,
+            DietaryRestrictionWebView,
         },
     },
     helpers::AppState,
@@ -15,9 +15,7 @@ use crate::{
 
 #[get("/diet/{id}")]
 async fn view(app_state: web::Data<AppState>, search: web::Path<uuid::Uuid>) -> impl Responder {
-    match dietary_restriction::service::search_one(&app_state, DietaryRestrictionSearchForm::by_id(search.into_inner()))
-        .await
-    {
+    match dietary_restriction::service::read(&app_state, &search.into_inner()).await {
         Ok(diet) => HttpResponse::Ok().json(DietaryRestrictionWebView::from(diet)),
         Err(RepositoryError::Database(e)) => {
             error!("{}", e);

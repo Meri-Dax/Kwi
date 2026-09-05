@@ -5,8 +5,7 @@ use crate::{
     common::repository::RepositoryError,
     entities::{
         dietary_restriction::model::{
-            DietaryRestriction, DietaryRestrictionForm, DietaryRestrictionSearchForm, DietaryRestrictionUpdateForm,
-            IngredientDietaryRestriction,
+            DietaryRestriction, DietaryRestrictionForm, DietaryRestrictionUpdateForm, IngredientDietaryRestriction,
         },
         ingredient::model::Ingredient,
     },
@@ -53,48 +52,25 @@ pub async fn update(
     Ok(result)
 }
 
-pub async fn search_one(
-    app_state: &AppState,
-    search: DietaryRestrictionSearchForm,
-) -> Result<DietaryRestriction, RepositoryError> {
+pub async fn read(app_state: &AppState, search_id: &uuid::Uuid) -> Result<DietaryRestriction, RepositoryError> {
     let mut conn = app_state.database.get().await?;
 
-    let mut search_query = dietary_restriction::dsl::dietary_restriction
+    let result = dietary_restriction::dsl::dietary_restriction
         .select(DietaryRestriction::as_select())
-        .into_boxed();
-
-    if let Some(search_id) = search.id {
-        search_query = search_query.filter(dietary_restriction::dsl::id.eq(search_id));
-    }
-
-    if let Some(search_slug) = search.slug {
-        search_query = search_query.filter(dietary_restriction::dsl::slug.eq(search_slug));
-    }
-
-    let result: DietaryRestriction = search_query.first(&mut conn).await?;
+        .filter(dietary_restriction::dsl::id.eq(search_id))
+        .first(&mut conn)
+        .await?;
 
     Ok(result)
 }
 
-pub async fn search(
-    app_state: &AppState,
-    search: DietaryRestrictionSearchForm,
-) -> Result<Vec<DietaryRestriction>, RepositoryError> {
+pub async fn list(app_state: &AppState) -> Result<Vec<DietaryRestriction>, RepositoryError> {
     let mut conn = app_state.database.get().await?;
 
-    let mut search_query = dietary_restriction::dsl::dietary_restriction
+    let result = dietary_restriction::dsl::dietary_restriction
         .select(DietaryRestriction::as_select())
-        .into_boxed();
-
-    if let Some(search_id) = search.id {
-        search_query = search_query.filter(dietary_restriction::dsl::id.eq(search_id));
-    }
-
-    if let Some(search_slug) = search.slug {
-        search_query = search_query.filter(dietary_restriction::dsl::slug.eq(search_slug));
-    }
-
-    let result: Vec<DietaryRestriction> = search_query.load(&mut conn).await?;
+        .load(&mut conn)
+        .await?;
 
     Ok(result)
 }

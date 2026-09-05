@@ -31,27 +31,6 @@ pub struct DietaryRestrictionUpdateForm {
     pub slug: Option<String>,
 }
 
-#[derive(Deserialize, Queryable)]
-#[diesel(table_name = dietary_restriction)]
-#[diesel(check_for_backend(diesel::pg::Pg))]
-pub struct DietaryRestrictionSearchForm {
-    pub id: Option<uuid::Uuid>,
-    pub slug: Option<String>,
-}
-
-impl DietaryRestrictionSearchForm {
-    pub fn empty() -> Self {
-        Self { id: None, slug: None }
-    }
-    pub fn by_id(id: uuid::Uuid) -> Self {
-        let mut res = Self::empty();
-
-        res.id = Some(id);
-
-        res
-    }
-}
-
 #[derive(Identifiable, Selectable, Queryable, Associations, Debug, Insertable)]
 #[diesel(table_name = crate::schema::ingredient_dietary_restriction)]
 #[diesel(belongs_to(Ingredient))]

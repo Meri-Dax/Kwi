@@ -3,9 +3,7 @@ use crate::{
     entities::{
         dietary_restriction::{
             self,
-            model::{
-                DietaryRestriction, DietaryRestrictionForm, DietaryRestrictionSearchForm, DietaryRestrictionUpdateForm,
-            },
+            model::{DietaryRestriction, DietaryRestrictionForm, DietaryRestrictionUpdateForm},
         },
         ingredient::model::Ingredient,
     },
@@ -27,15 +25,12 @@ pub async fn update(
     dietary_restriction::repository::update(app_state, id, form).await
 }
 
-pub async fn search_one(
-    app_state: &AppState,
-    search_form: DietaryRestrictionSearchForm,
-) -> Result<DietaryRestriction, RepositoryError> {
-    dietary_restriction::repository::search_one(&app_state, search_form).await
+pub async fn read(app_state: &AppState, search_id: &uuid::Uuid) -> Result<DietaryRestriction, RepositoryError> {
+    dietary_restriction::repository::read(app_state, search_id).await
 }
 
 pub async fn list(app_state: &AppState) -> Result<Vec<DietaryRestriction>, RepositoryError> {
-    dietary_restriction::repository::search(app_state, DietaryRestrictionSearchForm::empty()).await
+    dietary_restriction::repository::list(app_state).await
 }
 
 pub async fn list_for_ingredients(
