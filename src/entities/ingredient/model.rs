@@ -49,7 +49,7 @@ pub enum IngredientUnit {
     Gram,
 }
 
-#[derive(Identifiable, Selectable, Queryable, Associations, Debug, Insertable)]
+#[derive(Identifiable, Selectable, Queryable, Associations, Debug, Insertable, Clone)]
 #[diesel(table_name = crate::schema::recipe_ingredient)]
 #[diesel(belongs_to(Recipe))]
 #[diesel(belongs_to(Ingredient))]

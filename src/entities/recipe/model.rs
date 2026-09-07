@@ -70,6 +70,7 @@ impl RecipeUpdateForm {
     }
 }
 
+#[derive(Clone)]
 pub struct DetailedRecipe {
     pub recipe: Recipe,
     pub ingredients: Vec<(RecipeIngredient, Ingredient)>,

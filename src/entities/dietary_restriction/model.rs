@@ -9,7 +9,7 @@ use serde::{Deserialize, Serialize};
 
 use crate::entities::ingredient::model::Ingredient;
 
-#[derive(Queryable, Selectable, PartialEq, Hash, Eq, Debug)]
+#[derive(Queryable, Selectable, PartialEq, Hash, Eq, Debug, Clone)]
 #[diesel(table_name = crate::schema::dietary_restriction)]
 #[diesel(check_for_backend(diesel::pg::Pg))]
 pub struct DietaryRestriction {

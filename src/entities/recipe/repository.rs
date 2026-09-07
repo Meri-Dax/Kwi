@@ -27,60 +27,13 @@ use crate::{
 impl_insert!(Recipe, RecipeForm, crate::schema::recipe::table);
 
 pub async fn read(app_state: &AppState, search_id: &uuid::Uuid) -> Result<DetailedRecipe, RepositoryError> {
-    let mut conn = app_state.database.get().await?;
+    let search_array = vec![*search_id];
+    let result = get_from_list(app_state, &search_array).await?;
 
-    let mut tx = conn.build_transaction().read_only();
-
-    let result = tx
-        .run(async |ts_conn| -> Result<DetailedRecipe, RepositoryError> {
-            let recipe: Recipe = recipe::table
-                .select(Recipe::as_select())
-                .filter(recipe::id.eq(search_id))
-                .filter(recipe::status.eq(RecipeStatus::Public))
-                .first(ts_conn)
-                .await?;
-
-            let ingredients: Vec<(RecipeIngredient, Ingredient)> = recipe_ingredient::table
-                .inner_join(ingredient::table)
-                .filter(recipe_ingredient::recipe_id.eq(search_id))
-                .select((RecipeIngredient::as_select(), Ingredient::as_select()))
-                .load(ts_conn)
-                .await?;
-
-            let dietary_restrictions: Vec<DietaryRestriction> = dietary_restriction::table
-                .inner_join(
-                    ingredient_dietary_restriction::table
-                        .on(ingredient_dietary_restriction::dietary_restriction_id.eq(dietary_restriction::id)),
-                )
-                .inner_join(ingredient::table.on(ingredient::id.eq(ingredient_dietary_restriction::ingredient_id)))
-                .inner_join(recipe_ingredient::table.on(recipe_ingredient::ingredient_id.eq(ingredient::id)))
-                .filter(recipe_ingredient::recipe_id.eq(search_id))
-                .select(DietaryRestriction::as_returning())
-                .distinct()
-                .load(ts_conn)
-                .await?;
-
-            let logistics: Vec<RecipeLogistics> = recipe_logistics::table
-                .inner_join(
-                    recipe_recipe_logistics_xref::table
-                        .on(recipe_recipe_logistics_xref::recipe_logistics_id.eq(recipe_logistics::id)),
-                )
-                .filter(recipe_recipe_logistics_xref::recipe_id.eq(search_id))
-                .select(RecipeLogistics::as_returning())
-                .distinct()
-                .load(ts_conn)
-                .await?;
-
-            Ok(DetailedRecipe {
-                recipe,
-                ingredients,
-                dietary_restrictions,
-                logistics,
-            })
-        })
-        .await?;
-
-    Ok(result)
+    match result.is_empty() {
+        true => Err(RepositoryError::NotFound),
+        false => Ok(result[0].clone()),
+    }
 }
 
 pub async fn insert_with_xref(
