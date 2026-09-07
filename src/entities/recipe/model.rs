@@ -29,11 +29,12 @@ pub struct Recipe {
     pub date_updated: DateTime<Utc>,
 }
 
-#[derive(DbEnum, Debug, PartialEq, Serialize, Deserialize, Clone, Copy)]
+#[derive(DbEnum, Debug, PartialEq, Serialize, Deserialize, Clone, Copy, Default)]
 #[ExistingTypePath = "crate::schema::sql_types::RecipeStatus"]
 #[serde(rename_all = "kebab-case")]
 pub enum RecipeStatus {
     Draft,
+    #[default]
     Public,
 }
 
@@ -42,6 +43,7 @@ pub enum RecipeStatus {
 #[diesel(check_for_backend(diesel::pg::Pg))]
 pub struct RecipeForm {
     pub slug: String,
+    pub status: RecipeStatus,
     pub steps: Option<String>,
     pub description: Option<String>,
     pub prep_time: Option<i16>,
@@ -54,6 +56,7 @@ pub struct RecipeForm {
 #[diesel(check_for_backend(diesel::pg::Pg))]
 pub struct RecipeUpdateForm {
     pub slug: Option<String>,
+    pub status: Option<RecipeStatus>,
     pub steps: Option<String>,
     pub description: Option<String>,
     pub prep_time: Option<i16>,
@@ -113,6 +116,7 @@ impl From<RecipeWebForm>
         (
             RecipeForm {
                 slug,
+                status: RecipeStatus::default(),
                 steps,
                 description,
                 prep_time,
@@ -128,6 +132,7 @@ impl From<RecipeWebForm>
 #[derive(serde::Deserialize)]
 pub struct RecipeUpdateWebForm {
     pub slug: Option<String>,
+    pub status: Option<RecipeStatus>,
     pub steps: Option<String>,
     pub description: Option<String>,
     pub prep_time: Option<i16>,
@@ -140,6 +145,7 @@ impl From<RecipeUpdateWebForm> for (RecipeUpdateForm, Option<Vec<RecipeIngredien
     fn from(
         RecipeUpdateWebForm {
             slug,
+            status,
             steps,
             description,
             prep_time,
@@ -151,6 +157,7 @@ impl From<RecipeUpdateWebForm> for (RecipeUpdateForm, Option<Vec<RecipeIngredien
         (
             RecipeUpdateForm {
                 slug,
+                status,
                 steps,
                 description,
                 prep_time,
