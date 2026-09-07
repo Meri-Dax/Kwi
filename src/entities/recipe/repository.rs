@@ -3,7 +3,6 @@ use std::collections::{HashMap, HashSet};
 use chrono::Utc;
 use diesel::{ExpressionMethods, JoinOnDsl, QueryDsl, SelectableHelper};
 use diesel_async::RunQueryDsl;
-use tracing::info;
 
 use crate::{
     common::{
@@ -70,7 +69,6 @@ pub async fn insert_with_xref(
                     .iter()
                     .map(|&rl| RecipeRecipeLogisticsForm::from((&recipe, &rl)))
                     .collect();
-                info!("Attempting to insert: {:?}", recipe_logistics_links);
 
                 diesel::insert_into(recipe_recipe_logistics_xref::table)
                     .values(&recipe_logistics_links)
@@ -250,8 +248,6 @@ pub async fn get_from_list(
             entry.3.insert(logistics);
         }
     }
-    info!("ids {:?}", ids_list);
-    info!("recipes {:?}", grouped);
 
     let ordered: Vec<DetailedRecipe> = ids_list
         .iter()
