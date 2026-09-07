@@ -191,6 +191,7 @@ pub async fn list(app_state: &AppState, query: &RecipeQuery) -> Result<List<uuid
         search: _, // TODO: implement txt search
         exclude_dietary_restriction,
         exclude_logistics,
+        courses,
     } = query;
 
     let page = page.unwrap_or_else(|| RecipeQuery::default().page.unwrap());
@@ -220,13 +221,23 @@ pub async fn list(app_state: &AppState, query: &RecipeQuery) -> Result<List<uuid
     if let Some(exclude_logistics) = exclude_logistics
         && !exclude_logistics.is_empty()
     {
-        let excluded_recipe_ids = recipe::table
-            .inner_join(recipe_recipe_logistics_xref::table.on(recipe_recipe_logistics_xref::recipe_id.eq(recipe::id)))
+        let excluded_recipe_ids = recipe_recipe_logistics_xref::table
             .filter(recipe_recipe_logistics_xref::recipe_logistics_id.eq_any(exclude_logistics))
-            .select(recipe::id)
+            .select(recipe_recipe_logistics_xref::recipe_id)
             .into_boxed();
 
         query = query.filter(recipe::id.ne_all(excluded_recipe_ids));
+    }
+
+    if let Some(courses) = courses
+        && !courses.is_empty()
+    {
+        let included_recipe_ids = recipe_recipe_course_xref::table
+            .filter(recipe_recipe_course_xref::recipe_course_id.eq_any(courses))
+            .select(recipe_recipe_course_xref::recipe_id)
+            .into_boxed();
+
+        query = query.filter(recipe::id.eq_any(included_recipe_ids));
     }
 
     let result = query

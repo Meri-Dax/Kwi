@@ -248,6 +248,7 @@ pub struct RecipeQuery {
     pub search: Option<String>,
     pub exclude_dietary_restriction: Option<Vec<uuid::Uuid>>,
     pub exclude_logistics: Option<Vec<uuid::Uuid>>,
+    pub courses: Option<Vec<uuid::Uuid>>,
 }
 
 impl Default for RecipeQuery {
@@ -257,6 +258,7 @@ impl Default for RecipeQuery {
             search: None,
             exclude_dietary_restriction: None,
             exclude_logistics: None,
+            courses: None,
         }
     }
 }
