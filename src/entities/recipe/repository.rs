@@ -33,15 +33,15 @@ pub async fn read(app_state: &AppState, search_id: &uuid::Uuid) -> Result<Detail
 
     let result = tx
         .run(async |ts_conn| -> Result<DetailedRecipe, RepositoryError> {
-            let recipe: Recipe = recipe::dsl::recipe
+            let recipe: Recipe = recipe::table
                 .select(Recipe::as_select())
-                .filter(recipe::dsl::id.eq(search_id))
+                .filter(recipe::id.eq(search_id))
                 .first(ts_conn)
                 .await?;
 
-            let ingredients: Vec<(RecipeIngredient, Ingredient)> = recipe_ingredient::dsl::recipe_ingredient
+            let ingredients: Vec<(RecipeIngredient, Ingredient)> = recipe_ingredient::table
                 .inner_join(ingredient::table)
-                .filter(recipe_ingredient::dsl::recipe_id.eq(search_id))
+                .filter(recipe_ingredient::recipe_id.eq(search_id))
                 .select((RecipeIngredient::as_select(), Ingredient::as_select()))
                 .load(ts_conn)
                 .await?;
@@ -144,14 +144,14 @@ pub async fn update_with_xref(
 
     tx.run(async |ts_conn| -> Result<(), RepositoryError> {
         if !recipe_form.is_empty() {
-            diesel::update(recipe::table.filter(recipe::dsl::id.eq(recipe_id)))
-                .set((recipe_form, recipe::dsl::date_updated.eq(Utc::now().naive_utc())))
+            diesel::update(recipe::table.filter(recipe::id.eq(recipe_id)))
+                .set((recipe_form, recipe::date_updated.eq(Utc::now().naive_utc())))
                 .execute(ts_conn)
                 .await?;
         }
 
         if let Some(recipe_ingredients) = recipe_ingredients {
-            diesel::delete(recipe_ingredient::table.filter(recipe_ingredient::dsl::recipe_id.eq(recipe_id)))
+            diesel::delete(recipe_ingredient::table.filter(recipe_ingredient::recipe_id.eq(recipe_id)))
                 .execute(ts_conn)
                 .await?;
 
@@ -184,12 +184,13 @@ pub async fn list(app_state: &AppState, query: &RecipeQuery) -> Result<List<uuid
         page,
         search: _,
         exclude_dietary_restriction,
+        exclude_logistics,
     } = query;
 
     let page = page.unwrap_or_else(|| RecipeQuery::default().page.unwrap());
 
-    let mut query = recipe::dsl::recipe
-        .select(recipe::dsl::id)
+    let mut query = recipe::table
+        .select(recipe::id)
         .order(recipe::date_created.desc())
         .into_boxed();
 
@@ -202,11 +203,23 @@ pub async fn list(app_state: &AppState, query: &RecipeQuery) -> Result<List<uuid
                 ingredient_dietary_restriction::table
                     .on(ingredient_dietary_restriction::ingredient_id.eq(ingredient::id)),
             )
-            .filter(ingredient_dietary_restriction::dsl::dietary_restriction_id.eq_any(excluded_diet_ids))
-            .select(recipe_ingredient::dsl::recipe_id)
+            .filter(ingredient_dietary_restriction::dietary_restriction_id.eq_any(excluded_diet_ids))
+            .select(recipe_ingredient::recipe_id)
             .into_boxed();
 
-        query = query.filter(recipe::dsl::id.ne_all(excluded_recipe_ids));
+        query = query.filter(recipe::id.ne_all(excluded_recipe_ids));
+    }
+
+    if let Some(exclude_logistics) = exclude_logistics
+        && !exclude_logistics.is_empty()
+    {
+        let excluded_recipe_ids = recipe::table
+            .inner_join(recipe_recipe_logistics_xref::table.on(recipe_recipe_logistics_xref::recipe_id.eq(recipe::id)))
+            .filter(recipe_recipe_logistics_xref::recipe_logistics_id.eq_any(exclude_logistics))
+            .select(recipe::id)
+            .into_boxed();
+
+        query = query.filter(recipe::id.ne_all(excluded_recipe_ids));
     }
 
     let result = query
@@ -244,7 +257,7 @@ pub async fn get_from_list(
             dietary_restriction::table
                 .on(dietary_restriction::id.eq(ingredient_dietary_restriction::dietary_restriction_id)),
         )
-        .filter(recipe::dsl::id.eq_any(ids_list))
+        .filter(recipe::id.eq_any(ids_list))
         .select((
             Recipe::as_returning(),
             Option::<DietaryRestriction>::as_returning(),
