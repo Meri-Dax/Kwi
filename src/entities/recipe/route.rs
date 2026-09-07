@@ -5,6 +5,7 @@ use tracing::{error, info};
 use crate::{
     common::{http_response_message, paginate::List, repository::RepositoryError},
     entities::{
+        course::model::RecipeRecipeCourseWebForm,
         ingredient::model::RecipeIngredientWebForm,
         logistics::model::RecipeRecipeLogisticsWebForm,
         recipe::{
@@ -17,13 +18,14 @@ use crate::{
 
 #[post("/recipe")]
 async fn create(app_state: web::Data<AppState>, payload_json: web::Json<RecipeWebForm>) -> impl Responder {
-    let (recipe, ingredients, logistics): (
+    let (recipe, ingredients, logistics, courses): (
         RecipeForm,
         Vec<RecipeIngredientWebForm>,
         Vec<RecipeRecipeLogisticsWebForm>,
+        Vec<RecipeRecipeCourseWebForm>,
     ) = payload_json.into_inner().into();
 
-    match recipe::service::insert_with_ingredients(&app_state, &recipe, &ingredients, &logistics).await {
+    match recipe::service::insert_with_xref(&app_state, &recipe, &ingredients, &logistics, &courses).await {
         Ok(recipe) => HttpResponse::Ok().json(RecipeWebView::from(recipe)),
         Err(RepositoryError::Database(e)) => {
             error!("{}", e);
@@ -42,10 +44,14 @@ async fn update(
     id: web::Path<uuid::Uuid>,
     payload_json: web::Json<RecipeUpdateWebForm>,
 ) -> impl Responder {
-    let (recipe, ingredients): (RecipeUpdateForm, Option<Vec<RecipeIngredientWebForm>>) =
-        payload_json.into_inner().into();
+    let (recipe, ingredients, logistics, courses): (
+        RecipeUpdateForm,
+        Option<Vec<RecipeIngredientWebForm>>,
+        Option<Vec<RecipeRecipeLogisticsWebForm>>,
+        Option<Vec<RecipeRecipeCourseWebForm>>,
+    ) = payload_json.into_inner().into();
 
-    match recipe::service::update_with_ingredients(&app_state, &id, &recipe, &ingredients).await {
+    match recipe::service::update_with_xref(&app_state, &id, &recipe, &ingredients, &logistics, &courses).await {
         Ok(recipe) => HttpResponse::Ok().json(RecipeWebView::from(recipe)),
         Err(RepositoryError::Database(e)) => {
             error!("{}", e);

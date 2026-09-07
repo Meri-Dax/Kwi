@@ -6,6 +6,7 @@ use serde::{Deserialize, Serialize};
 use crate::{
     common::paginate::{List, deserialize_opt_page},
     entities::{
+        course::model::{RecipeCourse, RecipeCourseWebView, RecipeRecipeCourseWebForm},
         dietary_restriction::model::{DietaryRestriction, DietaryRestrictionWebView},
         ingredient::model::{Ingredient, RecipeIngredient, RecipeIngredientWebForm, RecipeIngredientWebView},
         logistics::model::{RecipeLogistics, RecipeLogisticsWebView, RecipeRecipeLogisticsWebForm},
@@ -76,6 +77,7 @@ pub struct DetailedRecipe {
     pub ingredients: Vec<(RecipeIngredient, Ingredient)>,
     pub dietary_restrictions: Vec<DietaryRestriction>,
     pub logistics: Vec<RecipeLogistics>,
+    pub courses: Vec<RecipeCourse>,
 }
 
 ///
@@ -93,6 +95,7 @@ pub struct RecipeWebForm {
     pub fresh_for_hours: Option<i16>,
     pub ingredients: Vec<RecipeIngredientWebForm>,
     pub logistics: Vec<uuid::Uuid>,
+    pub courses: Vec<uuid::Uuid>,
 }
 
 impl From<RecipeWebForm>
@@ -100,6 +103,7 @@ impl From<RecipeWebForm>
         RecipeForm,
         Vec<RecipeIngredientWebForm>,
         Vec<RecipeRecipeLogisticsWebForm>,
+        Vec<RecipeRecipeCourseWebForm>,
     )
 {
     fn from(
@@ -112,6 +116,7 @@ impl From<RecipeWebForm>
             fresh_for_hours,
             ingredients,
             logistics,
+            courses,
         }: RecipeWebForm,
     ) -> Self {
         (
@@ -126,6 +131,7 @@ impl From<RecipeWebForm>
             },
             ingredients,
             logistics.into_iter().map(Into::into).collect(),
+            courses.into_iter().map(Into::into).collect(),
         )
     }
 }
@@ -140,9 +146,18 @@ pub struct RecipeUpdateWebForm {
     pub cook_time: Option<i16>,
     pub fresh_for_hours: Option<i16>,
     pub ingredients: Option<Vec<RecipeIngredientWebForm>>,
+    pub logistics: Option<Vec<RecipeRecipeLogisticsWebForm>>,
+    pub courses: Option<Vec<RecipeRecipeCourseWebForm>>,
 }
 
-impl From<RecipeUpdateWebForm> for (RecipeUpdateForm, Option<Vec<RecipeIngredientWebForm>>) {
+impl From<RecipeUpdateWebForm>
+    for (
+        RecipeUpdateForm,
+        Option<Vec<RecipeIngredientWebForm>>,
+        Option<Vec<RecipeRecipeLogisticsWebForm>>,
+        Option<Vec<RecipeRecipeCourseWebForm>>,
+    )
+{
     fn from(
         RecipeUpdateWebForm {
             slug,
@@ -153,6 +168,8 @@ impl From<RecipeUpdateWebForm> for (RecipeUpdateForm, Option<Vec<RecipeIngredien
             cook_time,
             fresh_for_hours,
             ingredients,
+            logistics,
+            courses,
         }: RecipeUpdateWebForm,
     ) -> Self {
         (
@@ -166,6 +183,8 @@ impl From<RecipeUpdateWebForm> for (RecipeUpdateForm, Option<Vec<RecipeIngredien
                 fresh_for_hours,
             },
             ingredients,
+            logistics,
+            courses,
         )
     }
 }
@@ -182,6 +201,7 @@ pub struct RecipeWebView {
     pub ingredients: Vec<RecipeIngredientWebView>,
     pub dietary_restrictions: Vec<DietaryRestrictionWebView>,
     pub logistics: Vec<RecipeLogisticsWebView>,
+    pub courses: Vec<RecipeCourseWebView>,
 }
 
 impl From<DetailedRecipe> for RecipeWebView {
@@ -191,6 +211,7 @@ impl From<DetailedRecipe> for RecipeWebView {
             ingredients,
             dietary_restrictions,
             logistics,
+            courses,
         }: DetailedRecipe,
     ) -> Self {
         Self {
@@ -204,6 +225,7 @@ impl From<DetailedRecipe> for RecipeWebView {
             ingredients: ingredients.into_iter().map(RecipeIngredientWebView::from).collect(),
             dietary_restrictions: dietary_restrictions.into_iter().map(Into::into).collect(),
             logistics: logistics.into_iter().map(Into::into).collect(),
+            courses: courses.into_iter().map(Into::into).collect(),
         }
     }
 }

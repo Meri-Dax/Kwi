@@ -46,6 +46,15 @@ impl From<(&Recipe, &RecipeRecipeLogisticsWebForm)> for RecipeRecipeLogisticsFor
     }
 }
 
+impl From<(&uuid::Uuid, &RecipeRecipeLogisticsWebForm)> for RecipeRecipeLogisticsForm {
+    fn from((recipe_id, recipe_logistics): (&uuid::Uuid, &RecipeRecipeLogisticsWebForm)) -> Self {
+        Self {
+            recipe_id: *recipe_id,
+            recipe_logistics_id: recipe_logistics.id,
+        }
+    }
+}
+
 ///
 /// Web service structs
 ///
@@ -75,7 +84,7 @@ impl From<RecipeLogistics> for RecipeLogisticsWebView {
     }
 }
 
-#[derive(Debug, Clone, Copy)]
+#[derive(Deserialize, Debug, Clone, Copy)]
 pub struct RecipeRecipeLogisticsWebForm {
     pub id: uuid::Uuid,
 }
