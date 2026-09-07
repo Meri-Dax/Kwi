@@ -1,5 +1,6 @@
 use chrono::{DateTime, Utc};
 use diesel::{Selectable, deserialize::Queryable, prelude::Insertable, query_builder::AsChangeset};
+use diesel_derive_enum::DbEnum;
 use serde::{Deserialize, Serialize};
 
 use crate::{
@@ -17,6 +18,7 @@ use crate::{
 #[diesel(check_for_backend(diesel::pg::Pg))]
 pub struct Recipe {
     pub id: uuid::Uuid,
+    pub status: RecipeStatus,
     pub slug: String,
     pub steps: Option<String>,
     pub description: Option<String>,
@@ -25,6 +27,14 @@ pub struct Recipe {
     pub fresh_for_hours: Option<i16>,
     pub date_created: DateTime<Utc>,
     pub date_updated: DateTime<Utc>,
+}
+
+#[derive(DbEnum, Debug, PartialEq, Serialize, Deserialize, Clone, Copy)]
+#[ExistingTypePath = "crate::schema::sql_types::RecipeStatus"]
+#[serde(rename_all = "kebab-case")]
+pub enum RecipeStatus {
+    Draft,
+    Public,
 }
 
 #[derive(Insertable)]

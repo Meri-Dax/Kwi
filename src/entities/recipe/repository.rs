@@ -14,7 +14,7 @@ use crate::{
         dietary_restriction::model::DietaryRestriction,
         ingredient::model::{Ingredient, RecipeIngredient, RecipeIngredientForm, RecipeIngredientWebForm},
         logistics::model::{RecipeLogistics, RecipeRecipeLogisticsForm, RecipeRecipeLogisticsWebForm},
-        recipe::model::{DetailedRecipe, Recipe, RecipeForm, RecipeQuery, RecipeUpdateForm},
+        recipe::model::{DetailedRecipe, Recipe, RecipeForm, RecipeQuery, RecipeStatus, RecipeUpdateForm},
     },
     helpers::AppState,
     impl_insert,
@@ -36,6 +36,7 @@ pub async fn read(app_state: &AppState, search_id: &uuid::Uuid) -> Result<Detail
             let recipe: Recipe = recipe::table
                 .select(Recipe::as_select())
                 .filter(recipe::id.eq(search_id))
+                .filter(recipe::status.eq(RecipeStatus::Public))
                 .first(ts_conn)
                 .await?;
 
@@ -192,6 +193,7 @@ pub async fn list(app_state: &AppState, query: &RecipeQuery) -> Result<List<uuid
     let mut query = recipe::table
         .select(recipe::id)
         .order(recipe::date_created.desc())
+        .filter(recipe::status.eq(RecipeStatus::Public))
         .into_boxed();
 
     if let Some(excluded_diet_ids) = exclude_dietary_restriction
