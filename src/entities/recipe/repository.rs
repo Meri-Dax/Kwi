@@ -182,7 +182,7 @@ pub async fn list(app_state: &AppState, query: &RecipeQuery) -> Result<List<uuid
 
     let RecipeQuery {
         page,
-        search: _,
+        search: _, // TODO: implement txt search
         exclude_dietary_restriction,
         exclude_logistics,
     } = query;
