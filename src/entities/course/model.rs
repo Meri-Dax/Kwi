@@ -5,9 +5,9 @@ use serde::{Deserialize, Serialize};
 use crate::entities::recipe::model::Recipe;
 
 #[derive(Queryable, Selectable, Clone, Debug, PartialEq, Eq, Hash)]
-#[diesel(table_name = crate::schema::recipe_logistics)]
+#[diesel(table_name = crate::schema::recipe_course)]
 #[diesel(check_for_backend(diesel::pg::Pg))]
-pub struct RecipeLogistics {
+pub struct RecipeCourse {
     pub id: uuid::Uuid,
     pub slug: String,
     pub date_created: DateTime<Utc>,
@@ -15,33 +15,33 @@ pub struct RecipeLogistics {
 }
 
 #[derive(Insertable, Clone, Debug)]
-#[diesel(table_name = crate::schema::recipe_logistics)]
+#[diesel(table_name = crate::schema::recipe_course)]
 #[diesel(check_for_backend(diesel::pg::Pg))]
-pub struct RecipeLogisticsForm {
+pub struct RecipeCourseForm {
     pub slug: String,
 }
 
 #[derive(Queryable, Selectable, Clone, Debug)]
-#[diesel(table_name = crate::schema::recipe_recipe_logistics_xref)]
+#[diesel(table_name = crate::schema::recipe_recipe_course_xref)]
 #[diesel(check_for_backend(diesel::pg::Pg))]
-pub struct RecipeRecipeLogistics {
+pub struct RecipeRecipeCourse {
     pub recipe_id: uuid::Uuid,
-    pub recipe_logistics_id: uuid::Uuid,
+    pub recipe_course_id: uuid::Uuid,
 }
 
 #[derive(Insertable, Clone, Debug)]
-#[diesel(table_name = crate::schema::recipe_recipe_logistics_xref)]
+#[diesel(table_name = crate::schema::recipe_recipe_course_xref)]
 #[diesel(check_for_backend(diesel::pg::Pg))]
-pub struct RecipeRecipeLogisticsForm {
+pub struct RecipeRecipeCourseForm {
     pub recipe_id: uuid::Uuid,
-    pub recipe_logistics_id: uuid::Uuid,
+    pub recipe_course_id: uuid::Uuid,
 }
 
-impl From<(&Recipe, &RecipeRecipeLogisticsWebForm)> for RecipeRecipeLogisticsForm {
-    fn from((recipe, recipe_logistics): (&Recipe, &RecipeRecipeLogisticsWebForm)) -> Self {
+impl From<(&Recipe, &RecipeRecipeCourseWebForm)> for RecipeRecipeCourseForm {
+    fn from((recipe, recipe_course): (&Recipe, &RecipeRecipeCourseWebForm)) -> Self {
         Self {
             recipe_id: recipe.id,
-            recipe_logistics_id: recipe_logistics.id,
+            recipe_course_id: recipe_course.id,
         }
     }
 }
@@ -50,24 +50,24 @@ impl From<(&Recipe, &RecipeRecipeLogisticsWebForm)> for RecipeRecipeLogisticsFor
 /// Web service structs
 ///
 #[derive(Deserialize)]
-pub struct RecipeLogisticsWebForm {
+pub struct RecipeCourseWebForm {
     pub slug: String,
 }
 
-impl From<RecipeLogisticsWebForm> for RecipeLogisticsForm {
-    fn from(RecipeLogisticsWebForm { slug }: RecipeLogisticsWebForm) -> Self {
+impl From<RecipeCourseWebForm> for RecipeCourseForm {
+    fn from(RecipeCourseWebForm { slug }: RecipeCourseWebForm) -> Self {
         Self { slug }
     }
 }
 
 #[derive(Serialize)]
-pub struct RecipeLogisticsWebView {
+pub struct RecipeCourseWebView {
     pub id: uuid::Uuid,
     pub slug: String,
 }
 
-impl From<RecipeLogistics> for RecipeLogisticsWebView {
-    fn from(req: RecipeLogistics) -> Self {
+impl From<RecipeCourse> for RecipeCourseWebView {
+    fn from(req: RecipeCourse) -> Self {
         Self {
             id: req.id,
             slug: req.slug,
@@ -76,11 +76,11 @@ impl From<RecipeLogistics> for RecipeLogisticsWebView {
 }
 
 #[derive(Debug, Clone, Copy)]
-pub struct RecipeRecipeLogisticsWebForm {
+pub struct RecipeRecipeCourseWebForm {
     pub id: uuid::Uuid,
 }
 
-impl From<uuid::Uuid> for RecipeRecipeLogisticsWebForm {
+impl From<uuid::Uuid> for RecipeRecipeCourseWebForm {
     fn from(id: uuid::Uuid) -> Self {
         Self { id }
     }
