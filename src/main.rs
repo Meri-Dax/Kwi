@@ -3,9 +3,14 @@ use actix_web::{
     middleware::{NormalizePath, TrailingSlash},
     web::Data,
 };
+use clap::Parser;
 use kwi::{
     CONFIG,
-    helpers::{AppState, Config, malformed_request_handler},
+    helpers::{
+        AppState, Config,
+        command::{self, Cli},
+        malformed_request_handler,
+    },
     route,
 };
 use tracing::info;
@@ -22,6 +27,11 @@ async fn main() -> std::io::Result<()> {
     let app_state = AppState::try_init()
         .await
         .unwrap_or_else(|e| panic!("Could not initialize critical connection: {:?}", e));
+
+    let cli = Cli::parse();
+    if command::run(cli.command, &app_state).await.is_some() {
+        return Ok(());
+    }
 
     //
     // Start server

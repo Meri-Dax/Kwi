@@ -1,4 +1,5 @@
 mod app_state;
+pub mod command;
 mod config;
 mod database;
 mod deser_empty_as_none;
