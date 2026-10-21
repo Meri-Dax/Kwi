@@ -1,6 +1,6 @@
-use actix_web::{HttpRequest, HttpResponse, Responder, get, patch, post, web};
+use actix_web::{HttpResponse, Responder, get, patch, post, web};
 use serde_qs::web::QsQuery;
-use tracing::{error, info};
+use tracing::error;
 
 use crate::{
     common::{http_response_message, paginate::List, repository::RepositoryError},
@@ -81,12 +81,8 @@ async fn view(app_state: web::Data<AppState>, search: web::Path<uuid::Uuid>) -> 
 }
 
 #[get("/recipe")]
-async fn list(req: HttpRequest, app_state: web::Data<AppState>, search: QsQuery<RecipeQuery>) -> impl Responder {
-    let search = search.into_inner();
-    info!("raw query string: {:?}", req.query_string());
-
-    info!("query: {:?}", &search);
-    match recipe::service::list(&app_state, &search).await {
+async fn list(app_state: web::Data<AppState>, search: QsQuery<RecipeQuery>) -> impl Responder {
+    match recipe::service::list(&app_state, &search.into_inner()).await {
         Ok(recipe_list) => HttpResponse::Ok().json(List::<RecipeWebView>::from(recipe_list)),
         Err(RepositoryError::Database(e)) => {
             error!("{}", e);
