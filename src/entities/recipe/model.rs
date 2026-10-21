@@ -28,6 +28,7 @@ pub struct Recipe {
     pub fresh_for_hours: Option<i16>,
     pub date_created: DateTime<Utc>,
     pub date_updated: DateTime<Utc>,
+    pub servings: i16,
 }
 
 #[derive(DbEnum, Debug, PartialEq, Serialize, Deserialize, Clone, Copy, Default)]
@@ -50,6 +51,7 @@ pub struct RecipeForm {
     pub prep_time: Option<i16>,
     pub cook_time: Option<i16>,
     pub fresh_for_hours: Option<i16>,
+    pub servings: i16,
 }
 
 #[derive(AsChangeset, Default, PartialEq)]
@@ -63,6 +65,7 @@ pub struct RecipeUpdateForm {
     pub prep_time: Option<i16>,
     pub cook_time: Option<i16>,
     pub fresh_for_hours: Option<i16>,
+    pub servings: Option<i16>,
 }
 
 impl RecipeUpdateForm {
@@ -96,6 +99,7 @@ pub struct RecipeWebForm {
     pub ingredients: Vec<RecipeIngredientWebForm>,
     pub logistics: Vec<uuid::Uuid>,
     pub courses: Vec<uuid::Uuid>,
+    pub servings: Option<i16>,
 }
 
 impl From<RecipeWebForm>
@@ -117,6 +121,7 @@ impl From<RecipeWebForm>
             ingredients,
             logistics,
             courses,
+            servings,
         }: RecipeWebForm,
     ) -> Self {
         (
@@ -128,6 +133,7 @@ impl From<RecipeWebForm>
                 prep_time,
                 cook_time,
                 fresh_for_hours,
+                servings: servings.unwrap_or(1),
             },
             ingredients,
             logistics.into_iter().map(Into::into).collect(),
@@ -148,6 +154,7 @@ pub struct RecipeUpdateWebForm {
     pub ingredients: Option<Vec<RecipeIngredientWebForm>>,
     pub logistics: Option<Vec<RecipeRecipeLogisticsWebForm>>,
     pub courses: Option<Vec<RecipeRecipeCourseWebForm>>,
+    pub servings: Option<i16>,
 }
 
 impl From<RecipeUpdateWebForm>
@@ -170,6 +177,7 @@ impl From<RecipeUpdateWebForm>
             ingredients,
             logistics,
             courses,
+            servings,
         }: RecipeUpdateWebForm,
     ) -> Self {
         (
@@ -181,6 +189,7 @@ impl From<RecipeUpdateWebForm>
                 prep_time,
                 cook_time,
                 fresh_for_hours,
+                servings,
             },
             ingredients,
             logistics,
@@ -202,6 +211,7 @@ pub struct RecipeWebView {
     pub dietary_restrictions: Vec<DietaryRestrictionWebView>,
     pub logistics: Vec<RecipeLogisticsWebView>,
     pub courses: Vec<RecipeCourseWebView>,
+    pub servings: i16,
 }
 
 impl From<DetailedRecipe> for RecipeWebView {
@@ -222,6 +232,7 @@ impl From<DetailedRecipe> for RecipeWebView {
             prep_time: recipe.prep_time,
             cook_time: recipe.cook_time,
             fresh_for_hours: recipe.fresh_for_hours,
+            servings: recipe.servings,
             ingredients: ingredients.into_iter().map(RecipeIngredientWebView::from).collect(),
             dietary_restrictions: dietary_restrictions.into_iter().map(Into::into).collect(),
             logistics: logistics.into_iter().map(Into::into).collect(),
@@ -249,6 +260,7 @@ pub struct RecipeQuery {
     pub exclude_dietary_restriction: Option<Vec<uuid::Uuid>>,
     pub exclude_logistics: Option<Vec<uuid::Uuid>>,
     pub courses: Option<Vec<uuid::Uuid>>,
+    pub servings: Option<u16>,
 }
 
 impl Default for RecipeQuery {
@@ -259,6 +271,7 @@ impl Default for RecipeQuery {
             exclude_dietary_restriction: None,
             exclude_logistics: None,
             courses: None,
+            servings: Some(1),
         }
     }
 }

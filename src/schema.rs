@@ -8,6 +8,10 @@ pub mod sql_types {
     #[derive(diesel::query_builder::QueryId, diesel::sql_types::SqlType)]
     #[diesel(postgres_type(name = "recipe_status"))]
     pub struct RecipeStatus;
+
+    #[derive(diesel::query_builder::QueryId, diesel::sql_types::SqlType)]
+    #[diesel(postgres_type(name = "servings_scaling"))]
+    pub struct ServingsScaling;
 }
 
 diesel::table! {
@@ -51,6 +55,7 @@ diesel::table! {
         fresh_for_hours -> Nullable<Int2>,
         steps -> Nullable<Text>,
         description -> Nullable<Text>,
+        servings -> Int2,
     }
 }
 
@@ -77,6 +82,7 @@ diesel::table! {
 diesel::table! {
     use diesel::sql_types::*;
     use super::sql_types::IngredientUnit;
+    use super::sql_types::ServingsScaling;
 
     recipe_ingredient (id) {
         id -> Uuid,
@@ -84,6 +90,7 @@ diesel::table! {
         ingredient_id -> Uuid,
         qty -> Int4,
         unit -> IngredientUnit,
+        servings_scaling -> ServingsScaling,
     }
 }
 
