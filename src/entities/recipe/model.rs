@@ -108,6 +108,7 @@ impl From<RecipeWebForm>
         Vec<RecipeIngredientWebForm>,
         Vec<RecipeRecipeLogisticsWebForm>,
         Vec<RecipeRecipeCourseWebForm>,
+        i16,
     )
 {
     fn from(
@@ -133,11 +134,12 @@ impl From<RecipeWebForm>
                 prep_time,
                 cook_time,
                 fresh_for_hours,
-                servings: servings.unwrap_or(1),
+                servings: i16::from(servings.unwrap_or(1)),
             },
             ingredients,
             logistics.into_iter().map(Into::into).collect(),
             courses.into_iter().map(Into::into).collect(),
+            servings.unwrap_or(1),
         )
     }
 }
@@ -198,6 +200,11 @@ impl From<RecipeUpdateWebForm>
     }
 }
 
+#[derive(Serialize, Deserialize)]
+pub struct RecipeViewQuery {
+    pub servings: Option<i16>,
+}
+
 #[derive(Serialize)]
 pub struct RecipeWebView {
     pub id: uuid::Uuid,
@@ -214,15 +221,18 @@ pub struct RecipeWebView {
     pub servings: i16,
 }
 
-impl From<DetailedRecipe> for RecipeWebView {
+impl From<(DetailedRecipe, i16)> for RecipeWebView {
     fn from(
-        DetailedRecipe {
-            recipe,
-            ingredients,
-            dietary_restrictions,
-            logistics,
-            courses,
-        }: DetailedRecipe,
+        (
+            DetailedRecipe {
+                recipe,
+                ingredients,
+                dietary_restrictions,
+                logistics,
+                courses,
+            },
+            servings,
+        ): (DetailedRecipe, i16),
     ) -> Self {
         Self {
             slug: recipe.slug,
@@ -232,8 +242,13 @@ impl From<DetailedRecipe> for RecipeWebView {
             prep_time: recipe.prep_time,
             cook_time: recipe.cook_time,
             fresh_for_hours: recipe.fresh_for_hours,
-            servings: recipe.servings,
-            ingredients: ingredients.into_iter().map(RecipeIngredientWebView::from).collect(),
+            servings: servings.into(),
+            ingredients: ingredients
+                .into_iter()
+                .map(|(recipe_ingredient, ingredient)| {
+                    RecipeIngredientWebView::from((recipe_ingredient, ingredient, servings, recipe.servings))
+                })
+                .collect(),
             dietary_restrictions: dietary_restrictions.into_iter().map(Into::into).collect(),
             logistics: logistics.into_iter().map(Into::into).collect(),
             courses: courses.into_iter().map(Into::into).collect(),
@@ -241,12 +256,15 @@ impl From<DetailedRecipe> for RecipeWebView {
     }
 }
 
-impl From<List<DetailedRecipe>> for List<RecipeWebView> {
-    fn from(List { page, max_page, list }: List<DetailedRecipe>) -> Self {
+impl From<(List<DetailedRecipe>, i16)> for List<RecipeWebView> {
+    fn from((List { page, max_page, list }, servings): (List<DetailedRecipe>, i16)) -> Self {
         List {
             page,
             max_page,
-            list: list.into_iter().map(Into::into).collect(),
+            list: list
+                .into_iter()
+                .map(|detailed_recipe| (detailed_recipe, servings).into())
+                .collect(),
         }
     }
 }
@@ -260,7 +278,7 @@ pub struct RecipeQuery {
     pub exclude_dietary_restriction: Option<Vec<uuid::Uuid>>,
     pub exclude_logistics: Option<Vec<uuid::Uuid>>,
     pub courses: Option<Vec<uuid::Uuid>>,
-    pub servings: Option<u16>,
+    pub servings: Option<u8>,
 }
 
 impl Default for RecipeQuery {

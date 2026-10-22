@@ -192,15 +192,17 @@ pub async fn list(app_state: &AppState, query: &RecipeQuery) -> Result<List<uuid
         exclude_dietary_restriction,
         exclude_logistics,
         courses,
-        servings: _,
+        servings,
     } = query;
 
+    let servings: i16 = servings.unwrap_or(1).into();
     let page = page.unwrap_or_else(|| RecipeQuery::default().page.unwrap());
 
     let mut query = recipe::table
         .select(recipe::id)
         .order(recipe::date_created.desc())
         .filter(recipe::status.eq(RecipeStatus::Public))
+        .filter(recipe::servings.le(servings))
         .into_boxed();
 
     if let Some(excluded_diet_ids) = exclude_dietary_restriction

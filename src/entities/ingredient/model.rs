@@ -49,6 +49,14 @@ pub enum IngredientUnit {
     Gram,
 }
 
+#[derive(DbEnum, Debug, PartialEq, Serialize, Deserialize, Clone, Copy)]
+#[ExistingTypePath = "crate::schema::sql_types::ServingsScaling"]
+#[serde(rename_all = "kebab-case")]
+pub enum IngredientServingScaling {
+    Fixed,
+    Multiply,
+}
+
 #[derive(Identifiable, Selectable, Queryable, Associations, Debug, Insertable, Clone)]
 #[diesel(table_name = crate::schema::recipe_ingredient)]
 #[diesel(belongs_to(Recipe))]
@@ -59,6 +67,7 @@ pub struct RecipeIngredient {
     pub ingredient_id: uuid::Uuid,
     pub qty: i32,
     pub unit: IngredientUnit,
+    pub servings_scaling: IngredientServingScaling,
 }
 
 #[derive(Insertable, Deserialize)]
@@ -139,12 +148,29 @@ pub struct RecipeIngredientWebView {
     pub unit: IngredientUnit,
 }
 
-impl From<(RecipeIngredient, Ingredient)> for RecipeIngredientWebView {
-    fn from((recipe_ingredient, Ingredient { id, slug }): (RecipeIngredient, Ingredient)) -> Self {
+impl From<(RecipeIngredient, Ingredient, i16, i16)> for RecipeIngredientWebView {
+    fn from(
+        (recipe_ingredient, Ingredient { id, slug }, req_servings, min_servings): (
+            RecipeIngredient,
+            Ingredient,
+            i16,
+            i16,
+        ),
+    ) -> Self {
+        let qty = match recipe_ingredient.servings_scaling {
+            IngredientServingScaling::Fixed => recipe_ingredient.qty,
+            IngredientServingScaling::Multiply => {
+                // If min servings is 5, but req. servings is 6, then we get 1.2
+                let servings_ratio: f64 = (f64::from(req_servings) / f64::from(min_servings)).into();
+
+                // If ingredient for min. servings is 200, then we get 240 for 6
+                (servings_ratio * f64::from(recipe_ingredient.qty)).floor() as i32
+            }
+        };
         Self {
             id,
             slug,
-            qty: recipe_ingredient.qty,
+            qty,
             unit: recipe_ingredient.unit,
         }
     }

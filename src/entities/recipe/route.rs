@@ -10,7 +10,10 @@ use crate::{
         logistics::model::RecipeRecipeLogisticsWebForm,
         recipe::{
             self,
-            model::{RecipeForm, RecipeQuery, RecipeUpdateForm, RecipeUpdateWebForm, RecipeWebForm, RecipeWebView},
+            model::{
+                RecipeForm, RecipeQuery, RecipeUpdateForm, RecipeUpdateWebForm, RecipeViewQuery, RecipeWebForm,
+                RecipeWebView,
+            },
         },
     },
     helpers::AppState,
@@ -18,15 +21,16 @@ use crate::{
 
 #[post("/recipe")]
 async fn create(app_state: web::Data<AppState>, payload_json: web::Json<RecipeWebForm>) -> impl Responder {
-    let (recipe, ingredients, logistics, courses): (
+    let (recipe, ingredients, logistics, courses, servings): (
         RecipeForm,
         Vec<RecipeIngredientWebForm>,
         Vec<RecipeRecipeLogisticsWebForm>,
         Vec<RecipeRecipeCourseWebForm>,
+        i16,
     ) = payload_json.into_inner().into();
 
     match recipe::service::insert_with_xref(&app_state, &recipe, &ingredients, &logistics, &courses).await {
-        Ok(recipe) => HttpResponse::Ok().json(RecipeWebView::from(recipe)),
+        Ok(recipe) => HttpResponse::Ok().json(RecipeWebView::from((recipe, servings))),
         Err(RepositoryError::Database(e)) => {
             error!("{}", e);
             http_response_message::INTERNAL_SERVER_ERROR.generic_response()
@@ -52,7 +56,7 @@ async fn update(
     ) = payload_json.into_inner().into();
 
     match recipe::service::update_with_xref(&app_state, &id, &recipe, &ingredients, &logistics, &courses).await {
-        Ok(recipe) => HttpResponse::Ok().json(RecipeWebView::from(recipe)),
+        Ok(recipe) => HttpResponse::Ok().json(RecipeWebView::from((recipe, 1))),
         Err(RepositoryError::Database(e)) => {
             error!("{}", e);
             http_response_message::INTERNAL_SERVER_ERROR.generic_response()
@@ -65,9 +69,15 @@ async fn update(
 }
 
 #[get("/recipe/{id}")]
-async fn view(app_state: web::Data<AppState>, search: web::Path<uuid::Uuid>) -> impl Responder {
+async fn view(
+    app_state: web::Data<AppState>,
+    search: web::Path<uuid::Uuid>,
+    query: QsQuery<RecipeViewQuery>,
+) -> impl Responder {
+    let RecipeViewQuery { servings } = query.into_inner();
+
     match recipe::service::search_one(&app_state, &search.into_inner()).await {
-        Ok(recipe) => HttpResponse::Ok().json(RecipeWebView::from(recipe)),
+        Ok(recipe) => HttpResponse::Ok().json(RecipeWebView::from((recipe, servings.unwrap_or(1)))),
         Err(RepositoryError::Database(e)) => {
             error!("{}", e);
             http_response_message::INTERNAL_SERVER_ERROR.generic_response()
@@ -82,8 +92,12 @@ async fn view(app_state: web::Data<AppState>, search: web::Path<uuid::Uuid>) -> 
 
 #[get("/recipe")]
 async fn list(app_state: web::Data<AppState>, search: QsQuery<RecipeQuery>) -> impl Responder {
-    match recipe::service::list(&app_state, &search.into_inner()).await {
-        Ok(recipe_list) => HttpResponse::Ok().json(List::<RecipeWebView>::from(recipe_list)),
+    let search = search.into_inner();
+    match recipe::service::list(&app_state, &search).await {
+        Ok(recipe_list) => HttpResponse::Ok().json(List::<RecipeWebView>::from((
+            recipe_list,
+            search.servings.unwrap_or(1).into(),
+        ))),
         Err(RepositoryError::Database(e)) => {
             error!("{}", e);
             http_response_message::INTERNAL_SERVER_ERROR.generic_response()
