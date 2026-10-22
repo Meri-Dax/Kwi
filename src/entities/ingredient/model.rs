@@ -49,11 +49,12 @@ pub enum IngredientUnit {
     Gram,
 }
 
-#[derive(DbEnum, Debug, PartialEq, Serialize, Deserialize, Clone, Copy)]
+#[derive(DbEnum, Debug, PartialEq, Serialize, Deserialize, Clone, Copy, Default)]
 #[ExistingTypePath = "crate::schema::sql_types::ServingsScaling"]
 #[serde(rename_all = "kebab-case")]
 pub enum IngredientServingScaling {
     Fixed,
+    #[default]
     Multiply,
 }
 
@@ -76,6 +77,7 @@ pub struct RecipeIngredient {
 pub struct RecipeIngredientForm {
     pub recipe_id: uuid::Uuid,
     pub ingredient_id: uuid::Uuid,
+    pub servings_scaling: IngredientServingScaling,
     pub qty: i32,
     pub unit: IngredientUnit,
 }
@@ -177,10 +179,12 @@ impl From<(RecipeIngredient, Ingredient, i16, i16)> for RecipeIngredientWebView 
 }
 
 #[derive(Deserialize, Clone, Copy)]
+#[serde(rename_all = "kebab-case")]
 pub struct RecipeIngredientWebForm {
     pub id: uuid::Uuid,
     pub qty: i32,
     pub unit: IngredientUnit,
+    pub scaling: Option<IngredientServingScaling>,
 }
 
 impl From<(&Recipe, &RecipeIngredientWebForm)> for RecipeIngredientForm {
@@ -191,6 +195,7 @@ impl From<(&Recipe, &RecipeIngredientWebForm)> for RecipeIngredientForm {
                 id: ingredient_id,
                 qty,
                 unit,
+                scaling,
             },
         ): (&Recipe, &RecipeIngredientWebForm),
     ) -> Self {
@@ -199,6 +204,7 @@ impl From<(&Recipe, &RecipeIngredientWebForm)> for RecipeIngredientForm {
             ingredient_id,
             qty,
             unit,
+            servings_scaling: scaling.unwrap_or(IngredientServingScaling::default()),
         }
     }
 }
@@ -211,6 +217,7 @@ impl From<(&uuid::Uuid, &RecipeIngredientWebForm)> for RecipeIngredientForm {
                 id: ingredient_id,
                 qty,
                 unit,
+                scaling,
             },
         ): (&uuid::Uuid, &RecipeIngredientWebForm),
     ) -> Self {
@@ -219,6 +226,7 @@ impl From<(&uuid::Uuid, &RecipeIngredientWebForm)> for RecipeIngredientForm {
             ingredient_id,
             qty,
             unit,
+            servings_scaling: scaling.unwrap_or(IngredientServingScaling::default()),
         }
     }
 }
